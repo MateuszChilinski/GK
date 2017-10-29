@@ -58,10 +58,10 @@ namespace Project1
         }
         public override void movePoint(MyPoint p1, MyPoint p2, ref int dX, ref int dY)
         {
-            if(maxLength < calculateLength(p1, p2))
+            if(Math.Abs(calculateLength(p1, p2) - maxLength) > 1)
             {
                 p2.setCoords(p2.X + dX, p2.Y + dY);
-                if (maxLength < calculateLength(p1, p2))
+                if (Math.Abs(calculateLength(p1, p2) - maxLength) > 1)
                 {
                     if (p2.Y < p1.Y)
                         p2.setCoords(p1.X, p1.Y - (int)(maxLength));

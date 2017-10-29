@@ -279,7 +279,43 @@ namespace Project1
         {
             PointF drawPoint = new PointF(Math.Abs(p1.X - p2.X) / 2 + 5 + Math.Min(p1.X, p2.X), Math.Abs(p2.Y - p1.Y) / 2 + 5 + Math.Min(p1.Y, p2.Y));
             FindRestriction(p1, p2)?.drawIcon(e.Graphics, drawPoint);
-            e.Graphics.DrawLine(new Pen(Color.White, 2F), p1.X, p1.Y, p2.X, p2.Y);
+
+            int x = p1.X;
+            int y = p1.Y;
+            int x2 = p2.X;
+            int y2 = p2.Y;
+            int w = x2 - x;
+            int h = y2 - y;
+            int dx1 = 0, dy1 = 0, dx2 = 0, dy2 = 0;
+            if (w < 0) dx1 = -1; else if (w > 0) dx1 = 1;
+            if (h < 0) dy1 = -1; else if (h > 0) dy1 = 1;
+            if (w < 0) dx2 = -1; else if (w > 0) dx2 = 1;
+            int longest = Math.Abs(w);
+            int shortest = Math.Abs(h);
+            if (!(longest > shortest))
+            {
+                longest = Math.Abs(h);
+                shortest = Math.Abs(w);
+                if (h < 0) dy2 = -1; else if (h > 0) dy2 = 1;
+                dx2 = 0;
+            }
+            int numerator = longest >> 1;
+            for (int i = 0; i <= longest; i++)
+            {
+                e.Graphics.FillRectangle(Brushes.White ,x, y, 1, 1);
+                numerator += shortest;
+                if (!(numerator < longest))
+                {
+                    numerator -= longest;
+                    x += dx1;
+                    y += dy1;
+                }
+                else
+                {
+                    x += dx2;
+                    y += dy2;
+                }
+            }
         }
 
         private void deletePointStripMenuItem_Click(object sender, EventArgs e)
@@ -369,6 +405,7 @@ namespace Project1
                 else
                     points[secondPoint].setCoords(points[pointInUse].X, points[pointInUse].Y + (int)(maxLength));
             }
+            forceValidation();
         }
         private bool checkNeighbours(int p1, int p2, Type restriction)
         {
@@ -394,6 +431,7 @@ namespace Project1
                 points[secondPoint].setCoords(points[pointInUse].X, points[secondPoint].Y);
                 restrictions.Add(new Tuple<Tuple<MyPoint, MyPoint>, Restriction>(new Tuple<MyPoint, MyPoint>(points[pointInUse], points[secondPoint]), new VerticalRestriction()));
             }
+            forceValidation();
         }
 
         private void horizontalToolStripMenuItem_Click(object sender, EventArgs e)
@@ -404,7 +442,17 @@ namespace Project1
                 points[secondPoint].setCoords(points[secondPoint].X, points[pointInUse].Y);
                 restrictions.Add(new Tuple<Tuple<MyPoint, MyPoint>, Restriction>(new Tuple<MyPoint, MyPoint>(points[pointInUse], points[secondPoint]), new HorizontalRestriction()));
             }
+            forceValidation();
         }
+
+        private void forceValidation()
+        {
+            for(int i = 0; i < points.Count; i++)
+            {
+                ValidatePoints(i, i, i + 1, 0, 0, true);
+            }
+        }
+
     }
     class MyPoint
     {
