@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MathNet.Numerics.LinearAlgebra;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -14,6 +15,8 @@ namespace Project3
     {
         static Bitmap currentPicture, c1, c2, c3;
         static int currentConv = 0;
+        double[,] M, Mi;
+        private bool notConstant = false;
         public Form1()
         {
             currentPicture = new Bitmap("test.jpg");
@@ -38,10 +41,49 @@ namespace Project3
                 pictureBox4.Image = c3;
             }
         }
-
-        private void button4_Click(object sender, EventArgs e)
+        private double[,] generateM(bool inv = false)
         {
+            double xr=0.64, xg=0.3, xb=0.15, yr=0.33, yg=0.6, yb=0.06,Wx=0.31273,Wy=0.32902,Wz=1-Wx-Wy;
+            if (notConstant)
+            {
+                xr = (double) RPx.Value;
+                xg = (double)GPx.Value;
+                xb = (double)BPx.Value;
+                yr = (double)RPy.Value;
+                yg = (double)GPy.Value;
+                yb = (double)BPy.Value;
+                Wx = (double)WPx.Value;
+                Wy = (double)WPy.Value;
+                Wz = 1 - Wx - Wy;
+            }
+            double[,] Mm = { {xr, xg, xb },
+            { yr, yg, yb },
+            { 1-xr-yr, 1-xg-yg, 1-xb-yb }
+            };
+            Matrix<double> z = Matrix<double>.Build.DenseOfArray(Mm);
+            double[,] V2 = { { Wx/Wy }, {Wy/Wy }, { Wz/Wy } };
+            Matrix<double> v = Matrix<double>.Build.DenseOfArray(V2);
+            z = z.Inverse().Multiply(v);
+            double[,] M = z.ToArray();
 
+            double[,] rM = new double[3,3];
+            rM[0,0] = M[0, 0] * Mm[0,0];
+            rM[1,0] = M[0, 0] * Mm[1,0];
+            rM[2,0] = M[0, 0] * Mm[2, 0];
+            rM[0,1] = M[1, 0] * Mm[0,1];
+            rM[1,1] = M[1, 0] * Mm[1,1];
+            rM[2,1] = M[1, 0] * Mm[2,1];
+            rM[0,2] = M[2, 0] * Mm[0,2];
+            rM[1,2] = M[2, 0] * Mm[1,2];
+            rM[2,2] = M[2, 0] * Mm[2,2];
+            z = Matrix<double>.Build.DenseOfArray(rM);
+            if (inv)
+                rM = z.Inverse().ToArray();
+            return rM;
+        }
+        private double[,] generateMinv()
+        {
+            return generateM(true);
         }
         double[] RGB2YCBCR(byte R, byte G, byte B)
         {
@@ -93,6 +135,8 @@ namespace Project3
             double[] lab;
             byte[] rgb;
             Color currentColor;
+            M = generateM();
+            Mi = generateMinv();
             for (int x = 0; x < currentPicture.Width; x++)
             {
                 for (int y = 0; y < currentPicture.Height; y++)
@@ -124,12 +168,13 @@ namespace Project3
         }
         private byte[] XYZ2sRGB(double x, double y, double z)
         {
+            
             // linearize
             double R, G, B;
-            R = 3.2404542 * x - 1.5371385 * y - 0.4985314 * z;
-            G = -0.9692660 * x + 1.8760108 * y + 0.0415560 * z;
-            B = 0.0556434 * x - 0.2040259 * y + 1.0572252 * z;
-
+            double gamma = notConstant ? 1 / 2.2 : 1.0/(double) Gamma.Value;
+            R = Math.Pow(Mi[0,0] * x + Mi[0,1] * y + Mi[0,2] * z, gamma);
+            G = Math.Pow(Mi[1,0] * x + Mi[1,1] * y + Mi[1,2] * z, gamma);
+            B = Math.Pow(Mi[2,0] * x + Mi[2,1] * y + Mi[2,2] * z, gamma);
             byte[] sRGB = new byte[3];
             sRGB[0] = (byte)Math.Round(R * 255.0);
             sRGB[1] = (byte)Math.Round(G * 255.0);
@@ -142,12 +187,13 @@ namespace Project3
             double R = r / 255.0, B = b / 255.0, G = g / 255.0;
             double[] xyz = new double[3];
             double[] sRGB = new double[3];
+            double gamma = notConstant ? 2.2 : (double) Gamma.Value;
             sRGB[0] = R;
             sRGB[1] = G;
             sRGB[2] = B;
-            xyz[0] = 0.4124564 * sRGB[0] + 0.3575761 * sRGB[1] + 0.1804375 * sRGB[2];
-            xyz[1] = 0.2126729 * sRGB[0] + 0.7151522 * sRGB[1] + 0.0721750 * sRGB[2];
-            xyz[2] = 0.0193339 * sRGB[0] + 0.1191920 * sRGB[1] + 0.9503041 * sRGB[2];
+            xyz[0] = Math.Pow(M[0, 0] * sRGB[0] + M[0,1] * sRGB[1] + M[0,2] * sRGB[2], gamma);
+            xyz[1] = Math.Pow(M[1, 0] * sRGB[0] + M[1,1] * sRGB[1] + M[1,2] * sRGB[2], gamma);
+            xyz[2] = Math.Pow(M[2, 0] * sRGB[0] + M[2, 1] * sRGB[1] + M[2, 2] * sRGB[2], gamma);
             return xyz;
         }
         private double[] XYZ2Lab(double x, double y, double z)
@@ -247,6 +293,39 @@ namespace Project3
             pictureBox3.Image = c2;
             pictureBox4.Image = c3;
         }
+
+        private void predefinedRadio_CheckedChanged(object sender, EventArgs e)
+        {
+            notConstant = false;
+            comboBox3.Enabled = true;
+            comboBox2.Enabled = true;
+            RPx.Enabled = false;
+            WPy.Enabled = false;
+            GPy.Enabled = false;
+            GPx.Enabled = false;
+            WPx.Enabled = false;
+            Gamma.Enabled = false;
+            RPy.Enabled = false;
+            BPy.Enabled = false;
+            BPx.Enabled = false;
+        }
+
+        private void calculateRadio_CheckedChanged(object sender, EventArgs e)
+        {
+            notConstant = true;
+            RPx.Enabled = true;
+            WPy.Enabled = true;
+            GPy.Enabled = true;
+            WPx.Enabled = true;
+            GPx.Enabled = true;
+            Gamma.Enabled = true;
+            RPy.Enabled = true;
+            BPy.Enabled = true;
+            BPx.Enabled = true;
+            comboBox3.Enabled = false;
+            comboBox2.Enabled = false;
+        }
+
         private void ycbcr()
         {
             for (int x = 0; x < currentPicture.Width; x++)

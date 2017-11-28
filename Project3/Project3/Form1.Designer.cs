@@ -30,16 +30,25 @@
         {
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.pictureBox2 = new System.Windows.Forms.PictureBox();
-            this.button1 = new System.Windows.Forms.Button();
             this.button2 = new System.Windows.Forms.Button();
             this.button3 = new System.Windows.Forms.Button();
-            this.button4 = new System.Windows.Forms.Button();
             this.pictureBox3 = new System.Windows.Forms.PictureBox();
             this.pictureBox4 = new System.Windows.Forms.PictureBox();
             this.saveFileDialog1 = new System.Windows.Forms.SaveFileDialog();
             this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
             this.comboBox1 = new System.Windows.Forms.ComboBox();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.calculateRadio = new System.Windows.Forms.RadioButton();
+            this.predefinedRadio = new System.Windows.Forms.RadioButton();
+            this.Gamma = new System.Windows.Forms.NumericUpDown();
+            this.WPy = new System.Windows.Forms.NumericUpDown();
+            this.BPy = new System.Windows.Forms.NumericUpDown();
+            this.GPy = new System.Windows.Forms.NumericUpDown();
+            this.RPy = new System.Windows.Forms.NumericUpDown();
+            this.WPx = new System.Windows.Forms.NumericUpDown();
+            this.BPx = new System.Windows.Forms.NumericUpDown();
+            this.GPx = new System.Windows.Forms.NumericUpDown();
+            this.RPx = new System.Windows.Forms.NumericUpDown();
             this.comboBox3 = new System.Windows.Forms.ComboBox();
             this.comboBox2 = new System.Windows.Forms.ComboBox();
             this.label9 = new System.Windows.Forms.Label();
@@ -51,27 +60,20 @@
             this.label3 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
             this.label1 = new System.Windows.Forms.Label();
-            this.numericUpDown1 = new System.Windows.Forms.NumericUpDown();
-            this.numericUpDown2 = new System.Windows.Forms.NumericUpDown();
-            this.numericUpDown3 = new System.Windows.Forms.NumericUpDown();
-            this.numericUpDown4 = new System.Windows.Forms.NumericUpDown();
-            this.numericUpDown5 = new System.Windows.Forms.NumericUpDown();
-            this.numericUpDown6 = new System.Windows.Forms.NumericUpDown();
-            this.numericUpDown7 = new System.Windows.Forms.NumericUpDown();
-            this.numericUpDown8 = new System.Windows.Forms.NumericUpDown();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox3)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox4)).BeginInit();
             this.groupBox1.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown2)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown3)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown4)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown5)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown6)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown7)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown8)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.Gamma)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.WPy)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.BPy)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.GPy)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.RPy)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.WPx)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.BPx)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.GPx)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.RPx)).BeginInit();
             this.SuspendLayout();
             // 
             // pictureBox1
@@ -92,18 +94,9 @@
             this.pictureBox2.TabIndex = 1;
             this.pictureBox2.TabStop = false;
             // 
-            // button1
-            // 
-            this.button1.Location = new System.Drawing.Point(703, 12);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(190, 38);
-            this.button1.TabIndex = 4;
-            this.button1.Text = "To Greyscale";
-            this.button1.UseVisualStyleBackColor = true;
-            // 
             // button2
             // 
-            this.button2.Location = new System.Drawing.Point(703, 154);
+            this.button2.Location = new System.Drawing.Point(703, 12);
             this.button2.Name = "button2";
             this.button2.Size = new System.Drawing.Size(190, 39);
             this.button2.TabIndex = 5;
@@ -113,23 +106,13 @@
             // 
             // button3
             // 
-            this.button3.Location = new System.Drawing.Point(703, 246);
+            this.button3.Location = new System.Drawing.Point(703, 123);
             this.button3.Name = "button3";
             this.button3.Size = new System.Drawing.Size(190, 40);
             this.button3.TabIndex = 6;
             this.button3.Text = "Calculate";
             this.button3.UseVisualStyleBackColor = true;
             this.button3.Click += new System.EventHandler(this.button3_Click);
-            // 
-            // button4
-            // 
-            this.button4.Location = new System.Drawing.Point(1241, 484);
-            this.button4.Name = "button4";
-            this.button4.Size = new System.Drawing.Size(153, 37);
-            this.button4.TabIndex = 7;
-            this.button4.Text = "Save Output";
-            this.button4.UseVisualStyleBackColor = true;
-            this.button4.Click += new System.EventHandler(this.button4_Click);
             // 
             // pictureBox3
             // 
@@ -160,7 +143,7 @@
             "YCbCr",
             "HSV",
             "Lab"});
-            this.comboBox1.Location = new System.Drawing.Point(703, 199);
+            this.comboBox1.Location = new System.Drawing.Point(703, 67);
             this.comboBox1.Name = "comboBox1";
             this.comboBox1.Size = new System.Drawing.Size(190, 28);
             this.comboBox1.TabIndex = 10;
@@ -169,14 +152,17 @@
             // 
             // groupBox1
             // 
-            this.groupBox1.Controls.Add(this.numericUpDown8);
-            this.groupBox1.Controls.Add(this.numericUpDown7);
-            this.groupBox1.Controls.Add(this.numericUpDown6);
-            this.groupBox1.Controls.Add(this.numericUpDown5);
-            this.groupBox1.Controls.Add(this.numericUpDown4);
-            this.groupBox1.Controls.Add(this.numericUpDown3);
-            this.groupBox1.Controls.Add(this.numericUpDown2);
-            this.groupBox1.Controls.Add(this.numericUpDown1);
+            this.groupBox1.Controls.Add(this.calculateRadio);
+            this.groupBox1.Controls.Add(this.predefinedRadio);
+            this.groupBox1.Controls.Add(this.Gamma);
+            this.groupBox1.Controls.Add(this.WPy);
+            this.groupBox1.Controls.Add(this.BPy);
+            this.groupBox1.Controls.Add(this.GPy);
+            this.groupBox1.Controls.Add(this.RPy);
+            this.groupBox1.Controls.Add(this.WPx);
+            this.groupBox1.Controls.Add(this.BPx);
+            this.groupBox1.Controls.Add(this.GPx);
+            this.groupBox1.Controls.Add(this.RPx);
             this.groupBox1.Controls.Add(this.comboBox3);
             this.groupBox1.Controls.Add(this.comboBox2);
             this.groupBox1.Controls.Add(this.label9);
@@ -195,9 +181,249 @@
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Lab Settings";
             // 
+            // calculateRadio
+            // 
+            this.calculateRadio.AutoSize = true;
+            this.calculateRadio.Location = new System.Drawing.Point(26, 366);
+            this.calculateRadio.Name = "calculateRadio";
+            this.calculateRadio.Size = new System.Drawing.Size(232, 24);
+            this.calculateRadio.TabIndex = 21;
+            this.calculateRadio.TabStop = true;
+            this.calculateRadio.Text = "Calculate from values above";
+            this.calculateRadio.UseVisualStyleBackColor = true;
+            this.calculateRadio.CheckedChanged += new System.EventHandler(this.calculateRadio_CheckedChanged);
+            // 
+            // predefinedRadio
+            // 
+            this.predefinedRadio.AutoSize = true;
+            this.predefinedRadio.Checked = true;
+            this.predefinedRadio.Location = new System.Drawing.Point(26, 335);
+            this.predefinedRadio.Name = "predefinedRadio";
+            this.predefinedRadio.Size = new System.Drawing.Size(111, 24);
+            this.predefinedRadio.TabIndex = 20;
+            this.predefinedRadio.TabStop = true;
+            this.predefinedRadio.Text = "Predefined";
+            this.predefinedRadio.UseVisualStyleBackColor = true;
+            this.predefinedRadio.CheckedChanged += new System.EventHandler(this.predefinedRadio_CheckedChanged);
+            // 
+            // Gamma
+            // 
+            this.Gamma.DecimalPlaces = 2;
+            this.Gamma.Enabled = false;
+            this.Gamma.Increment = new decimal(new int[] {
+            1,
+            0,
+            0,
+            65536});
+            this.Gamma.Location = new System.Drawing.Point(272, 288);
+            this.Gamma.Maximum = new decimal(new int[] {
+            10,
+            0,
+            0,
+            0});
+            this.Gamma.Name = "Gamma";
+            this.Gamma.Size = new System.Drawing.Size(120, 26);
+            this.Gamma.TabIndex = 19;
+            this.Gamma.Value = new decimal(new int[] {
+            22,
+            0,
+            0,
+            65536});
+            // 
+            // WPy
+            // 
+            this.WPy.DecimalPlaces = 6;
+            this.WPy.Enabled = false;
+            this.WPy.Increment = new decimal(new int[] {
+            1,
+            0,
+            0,
+            131072});
+            this.WPy.Location = new System.Drawing.Point(272, 252);
+            this.WPy.Maximum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            this.WPy.Name = "WPy";
+            this.WPy.Size = new System.Drawing.Size(120, 26);
+            this.WPy.TabIndex = 18;
+            this.WPy.Value = new decimal(new int[] {
+            329020,
+            0,
+            0,
+            393216});
+            // 
+            // BPy
+            // 
+            this.BPy.DecimalPlaces = 6;
+            this.BPy.Enabled = false;
+            this.BPy.Increment = new decimal(new int[] {
+            1,
+            0,
+            0,
+            131072});
+            this.BPy.Location = new System.Drawing.Point(272, 218);
+            this.BPy.Maximum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            this.BPy.Name = "BPy";
+            this.BPy.Size = new System.Drawing.Size(120, 26);
+            this.BPy.TabIndex = 17;
+            this.BPy.Value = new decimal(new int[] {
+            6,
+            0,
+            0,
+            131072});
+            // 
+            // GPy
+            // 
+            this.GPy.DecimalPlaces = 6;
+            this.GPy.Enabled = false;
+            this.GPy.Increment = new decimal(new int[] {
+            1,
+            0,
+            0,
+            131072});
+            this.GPy.Location = new System.Drawing.Point(272, 185);
+            this.GPy.Maximum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            this.GPy.Name = "GPy";
+            this.GPy.Size = new System.Drawing.Size(120, 26);
+            this.GPy.TabIndex = 16;
+            this.GPy.Value = new decimal(new int[] {
+            6,
+            0,
+            0,
+            65536});
+            // 
+            // RPy
+            // 
+            this.RPy.DecimalPlaces = 6;
+            this.RPy.Enabled = false;
+            this.RPy.Increment = new decimal(new int[] {
+            1,
+            0,
+            0,
+            131072});
+            this.RPy.Location = new System.Drawing.Point(272, 149);
+            this.RPy.Maximum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            this.RPy.Name = "RPy";
+            this.RPy.Size = new System.Drawing.Size(120, 26);
+            this.RPy.TabIndex = 15;
+            this.RPy.Value = new decimal(new int[] {
+            33,
+            0,
+            0,
+            131072});
+            // 
+            // WPx
+            // 
+            this.WPx.DecimalPlaces = 6;
+            this.WPx.Enabled = false;
+            this.WPx.Increment = new decimal(new int[] {
+            1,
+            0,
+            0,
+            131072});
+            this.WPx.Location = new System.Drawing.Point(146, 252);
+            this.WPx.Maximum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            this.WPx.Name = "WPx";
+            this.WPx.Size = new System.Drawing.Size(120, 26);
+            this.WPx.TabIndex = 14;
+            this.WPx.Value = new decimal(new int[] {
+            31273,
+            0,
+            0,
+            327680});
+            // 
+            // BPx
+            // 
+            this.BPx.DecimalPlaces = 6;
+            this.BPx.Enabled = false;
+            this.BPx.Increment = new decimal(new int[] {
+            1,
+            0,
+            0,
+            131072});
+            this.BPx.Location = new System.Drawing.Point(146, 218);
+            this.BPx.Maximum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            this.BPx.Name = "BPx";
+            this.BPx.Size = new System.Drawing.Size(120, 26);
+            this.BPx.TabIndex = 13;
+            this.BPx.Value = new decimal(new int[] {
+            15,
+            0,
+            0,
+            131072});
+            // 
+            // GPx
+            // 
+            this.GPx.DecimalPlaces = 6;
+            this.GPx.Enabled = false;
+            this.GPx.Increment = new decimal(new int[] {
+            1,
+            0,
+            0,
+            131072});
+            this.GPx.Location = new System.Drawing.Point(146, 185);
+            this.GPx.Maximum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            this.GPx.Name = "GPx";
+            this.GPx.Size = new System.Drawing.Size(120, 26);
+            this.GPx.TabIndex = 12;
+            this.GPx.Value = new decimal(new int[] {
+            3,
+            0,
+            0,
+            65536});
+            // 
+            // RPx
+            // 
+            this.RPx.DecimalPlaces = 6;
+            this.RPx.Enabled = false;
+            this.RPx.Increment = new decimal(new int[] {
+            1,
+            0,
+            0,
+            131072});
+            this.RPx.Location = new System.Drawing.Point(146, 149);
+            this.RPx.Maximum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            this.RPx.Name = "RPx";
+            this.RPx.Size = new System.Drawing.Size(120, 26);
+            this.RPx.TabIndex = 11;
+            this.RPx.Value = new decimal(new int[] {
+            64,
+            0,
+            0,
+            131072});
+            // 
             // comboBox3
             // 
-            this.comboBox3.Enabled = false;
             this.comboBox3.FormattingEnabled = true;
             this.comboBox3.Location = new System.Drawing.Point(251, 77);
             this.comboBox3.Name = "comboBox3";
@@ -207,7 +433,6 @@
             // 
             // comboBox2
             // 
-            this.comboBox2.Enabled = false;
             this.comboBox2.FormattingEnabled = true;
             this.comboBox2.Location = new System.Drawing.Point(251, 34);
             this.comboBox2.Name = "comboBox2";
@@ -236,7 +461,7 @@
             // label7
             // 
             this.label7.AutoSize = true;
-            this.label7.Location = new System.Drawing.Point(200, 288);
+            this.label7.Location = new System.Drawing.Point(200, 294);
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(66, 20);
             this.label7.TabIndex = 6;
@@ -296,70 +521,6 @@
             this.label1.TabIndex = 0;
             this.label1.Text = "Red primary";
             // 
-            // numericUpDown1
-            // 
-            this.numericUpDown1.Enabled = false;
-            this.numericUpDown1.Location = new System.Drawing.Point(146, 149);
-            this.numericUpDown1.Name = "numericUpDown1";
-            this.numericUpDown1.Size = new System.Drawing.Size(120, 26);
-            this.numericUpDown1.TabIndex = 11;
-            // 
-            // numericUpDown2
-            // 
-            this.numericUpDown2.Enabled = false;
-            this.numericUpDown2.Location = new System.Drawing.Point(146, 185);
-            this.numericUpDown2.Name = "numericUpDown2";
-            this.numericUpDown2.Size = new System.Drawing.Size(120, 26);
-            this.numericUpDown2.TabIndex = 12;
-            // 
-            // numericUpDown3
-            // 
-            this.numericUpDown3.Enabled = false;
-            this.numericUpDown3.Location = new System.Drawing.Point(146, 218);
-            this.numericUpDown3.Name = "numericUpDown3";
-            this.numericUpDown3.Size = new System.Drawing.Size(120, 26);
-            this.numericUpDown3.TabIndex = 13;
-            // 
-            // numericUpDown4
-            // 
-            this.numericUpDown4.Enabled = false;
-            this.numericUpDown4.Location = new System.Drawing.Point(146, 252);
-            this.numericUpDown4.Name = "numericUpDown4";
-            this.numericUpDown4.Size = new System.Drawing.Size(120, 26);
-            this.numericUpDown4.TabIndex = 14;
-            // 
-            // numericUpDown5
-            // 
-            this.numericUpDown5.Enabled = false;
-            this.numericUpDown5.Location = new System.Drawing.Point(272, 149);
-            this.numericUpDown5.Name = "numericUpDown5";
-            this.numericUpDown5.Size = new System.Drawing.Size(120, 26);
-            this.numericUpDown5.TabIndex = 15;
-            // 
-            // numericUpDown6
-            // 
-            this.numericUpDown6.Enabled = false;
-            this.numericUpDown6.Location = new System.Drawing.Point(272, 185);
-            this.numericUpDown6.Name = "numericUpDown6";
-            this.numericUpDown6.Size = new System.Drawing.Size(120, 26);
-            this.numericUpDown6.TabIndex = 16;
-            // 
-            // numericUpDown7
-            // 
-            this.numericUpDown7.Enabled = false;
-            this.numericUpDown7.Location = new System.Drawing.Point(272, 218);
-            this.numericUpDown7.Name = "numericUpDown7";
-            this.numericUpDown7.Size = new System.Drawing.Size(120, 26);
-            this.numericUpDown7.TabIndex = 17;
-            // 
-            // numericUpDown8
-            // 
-            this.numericUpDown8.Enabled = false;
-            this.numericUpDown8.Location = new System.Drawing.Point(272, 252);
-            this.numericUpDown8.Name = "numericUpDown8";
-            this.numericUpDown8.Size = new System.Drawing.Size(120, 26);
-            this.numericUpDown8.TabIndex = 18;
-            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
@@ -369,10 +530,8 @@
             this.Controls.Add(this.comboBox1);
             this.Controls.Add(this.pictureBox4);
             this.Controls.Add(this.pictureBox3);
-            this.Controls.Add(this.button4);
             this.Controls.Add(this.button3);
             this.Controls.Add(this.button2);
-            this.Controls.Add(this.button1);
             this.Controls.Add(this.pictureBox2);
             this.Controls.Add(this.pictureBox1);
             this.Name = "Form1";
@@ -383,14 +542,15 @@
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox4)).EndInit();
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown2)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown3)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown4)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown5)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown6)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown7)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown8)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.Gamma)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.WPy)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.BPy)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.GPy)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.RPy)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.WPx)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.BPx)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.GPx)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.RPx)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -399,10 +559,8 @@
 
         private System.Windows.Forms.PictureBox pictureBox1;
         private System.Windows.Forms.PictureBox pictureBox2;
-        private System.Windows.Forms.Button button1;
         private System.Windows.Forms.Button button2;
         private System.Windows.Forms.Button button3;
-        private System.Windows.Forms.Button button4;
         private System.Windows.Forms.PictureBox pictureBox3;
         private System.Windows.Forms.PictureBox pictureBox4;
         private System.Windows.Forms.SaveFileDialog saveFileDialog1;
@@ -420,14 +578,17 @@
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.Label label1;
-        private System.Windows.Forms.NumericUpDown numericUpDown1;
-        private System.Windows.Forms.NumericUpDown numericUpDown8;
-        private System.Windows.Forms.NumericUpDown numericUpDown7;
-        private System.Windows.Forms.NumericUpDown numericUpDown6;
-        private System.Windows.Forms.NumericUpDown numericUpDown5;
-        private System.Windows.Forms.NumericUpDown numericUpDown4;
-        private System.Windows.Forms.NumericUpDown numericUpDown3;
-        private System.Windows.Forms.NumericUpDown numericUpDown2;
+        private System.Windows.Forms.NumericUpDown RPx;
+        private System.Windows.Forms.NumericUpDown WPy;
+        private System.Windows.Forms.NumericUpDown GPy;
+        private System.Windows.Forms.NumericUpDown WPx;
+        private System.Windows.Forms.NumericUpDown GPx;
+        private System.Windows.Forms.NumericUpDown Gamma;
+        private System.Windows.Forms.RadioButton calculateRadio;
+        private System.Windows.Forms.RadioButton predefinedRadio;
+        private System.Windows.Forms.NumericUpDown RPy;
+        private System.Windows.Forms.NumericUpDown BPy;
+        private System.Windows.Forms.NumericUpDown BPx;
     }
 }
 
