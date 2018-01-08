@@ -10,41 +10,284 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Numerics;
 using System.Timers;
+using System.Reflection;
 
 namespace GK3D
 {
     public partial class Form1 : Form
     {
-        static Matrix4x4 Mmodel = new Matrix4x4(1, 0, 0, 0,
-                   0, 1, 0, 0,
-                   0, 0, 1, 0,
-                   0, 0, 0, 1);
-        Matrix4x4 Mview = CreateViewAt(3.5, 0.5, 0.5, 0, 0.1, 0.5, 0, 0, 1);
-        Matrix4x4 Mproj = new Matrix4x4(2.414213562F, 0, 0, 0,
-                        0, 2.414213562F, 0, 0,
-                        0, 0, -1.02020202F, -2.02020202F,
-                        0, 0, -1, 0);
+        int[,] zindex;
         static double t = 0;
-        Cube c;
+        Object3D c;
+        int R = 255, G = 0, B = 0;
+
         private void PictureBox1_Paint(object sender, PaintEventArgs e)
         {
             pictureBox1.Image = new Bitmap(pictureBox1.Width, pictureBox1.Height);
             Graphics g = Graphics.FromImage(pictureBox1.Image);
-            foreach (Edge ed in c.edgeList)
+            int i = 0;
+            zindex = new int[pictureBox1.Width, pictureBox1.Height];
+            for(int j = 0; j < pictureBox1.Width; j++)
             {
-                Vector4 fp = CreatePoint(ed.firstPoint);
-                Vector4 sp = CreatePoint(ed.secondPoint);
-                g.DrawLine(new Pen(Color.Red), new Point((int)fp.X, (int)fp.Y), new Point((int)sp.X, (int)sp.Y));
+                for(int k = 0; k < pictureBox1.Height; k++)
+                {
+                    zindex[j, k] = Int32.MaxValue;
+                }
             }
-            pictureBox1.Invalidate();
+            foreach (Polygon poly in c.polygonList)
+            {
+                switch(i)
+                {
+                    case 0:
+                        R = 255; G = 0; B = 0;
+                        break;
+                    case 1:
+                        R = 0; G = 255; B = 0;
+                        break;
+                    case 2:
+                        R = 0; G = 0; B = 255;
+                        break;
+                    case 3:
+                        R = 255; G = 255; B = 0;
+                        break;
+                    case 4:
+                        R = 255; G = 0; B = 255;
+                        break;
+                    case 5:
+                        R = 0; G = 0; B = 0;
+                        break;
+                    case 6:
+                        R = 255; G = 111; B = 102;
+                        break;
+                    default:
+                        R = 0; G = 255; B = 255;
+                        break;
+                }
+                i++;
+                FillPolygon(e, Polygon.convertTo2D(poly).edgeList);
+                pictureBox1.Invalidate();
+            }
+        }
+        private void FillPolygon(PaintEventArgs e, List<Edge> edges)
+        {
+            List<Vector4> points = new List<Vector4>();
+
+            List<Edge>[] EA = new List<Edge>[pictureBox1.Height];
+            for (int i = 0; i < pictureBox1.Height; i++)
+            {
+                EA[i] = new List<Edge>();
+            }
+            foreach(Edge ed in edges)
+            {
+                EA[(int) Math.Max(ed.firstPoint.Y, ed.secondPoint.Y)].Add(ed);
+            }
+            List<Edge> AET = new List<Edge>();
+            for (int y = pictureBox1.Height - 1; y >= 0; y--)
+            {
+                foreach (var z in EA[y])
+                    AET.Add(z);
+                AET = AET.OrderBy(edge => edge.x).ToList();
+                List<int> toRemove = new List<int>();
+                for (int i = 0; i < AET.Count - 1; i += 2)
+                {
+                    DrawLine((int)AET[i].x, (int)AET[i + 1].x, y, Math.Max((int)AET[i].z, (int)AET[i+1].z), e, false);
+                }
+
+                for (int i = 0; i < AET.Count; i++)
+                {
+                    if (AET[i].yMax == y)
+                        toRemove.Add(i);
+                }
+
+                for (int i = 0; i < AET.Count; i++)
+                {
+                    AET[i].x -= AET[i].m;
+                    if (AET[i].x < 0)
+                        toRemove.Add(i);
+                }
+                toRemove = toRemove.Distinct().ToList();
+                toRemove = toRemove.OrderByDescending(i => i).ToList();
+                foreach (int z in toRemove)
+                {
+                    AET.RemoveAt(z);
+                }
+            }
+        }
+        private Vector3 CalculateLight(Vector4 point, Vector3 lightPoint, Vector3 normal, Vector3 cameraPoint, Vector3 rgb)
+        {
+            // trzeba zamienic lightpointa na prawdziwy wektor, a nie wektor wspolrzednych
+            float ka = 0.5F;
+            float kd = 0.5F;
+            float ks = 0.5F;
+            float a = 0.5F;
+            Vector3 lightSource = new Vector3(0.2F, 0.2F, 0.2F);
+            Vector3 r = 2 * Vector3.Subtract(Vector3.Multiply(Vector3.Cross(lightPoint, normal), normal), lightPoint);
+            return Vector3.Add(
+                Vector3.Multiply(rgb, new Vector3(ka, ka, ka)), 
+                Vector3.Multiply(lightSource, Vector3.Add(
+                    (Vector3.Multiply(
+                        new Vector3(kd, kd, kd), Vector3.Cross(normal, lightPoint))),
+                        Vector3.Multiply(new Vector3(ks,ks,ks), Vector3.Cross(cameraPoint, r))
+                    )));
+
+        }
+        private void DrawLine(int x1, int x2, int y, int z, PaintEventArgs e, bool second)
+        {
+            if (x1 > Width || x2 > Width || y > Height)
+                return;
+            DoLine(x1, y, z, x2, y, z);
+            //e.Graphics.DrawLine(myPen, x1, y, x2, y);
+            //DrawLine(new MyPoint(x1, y), new MyPoint(x2, y), e, second);
         }
         private static void OnTimedEvent(object source, ElapsedEventArgs e)
         {
-            Mmodel = new Matrix4x4((float)Math.Cos(t), (float)(-Math.Sin(t)), 0, (float) (0.5*Math.Sin(t)),
+            Graphic3D.Mmodel = new Matrix4x4((float)Math.Cos(t), (float)(-Math.Sin(t)), 0, (float) (0.5*Math.Sin(t)),
                    (float)Math.Sin(t), (float)Math.Cos(t), 0, (float)(0.5 * Math.Sin(t)),
                    0, 0, 1, (float)(0.5 * Math.Sin(t)),
                    0, 0, 0, 1);
-            t += 0.1;
+            t += 0.05;
+        }
+        public static void Swap<T>(ref T x, ref T y)
+        {
+            T tmp = y;
+            y = x;
+            x = tmp;
+        }
+        public void DoLine(int startX, int startY, int startZ, int endX, int endY, int endZ)
+        {
+            Action<int, int, int> callback = (x, y, z) => {
+                
+                if (x >= pictureBox1.Width || y >= pictureBox1.Height || zindex[x,y] < z)
+                    return;
+                zindex[x, y] = z;
+                ((Bitmap)pictureBox1.Image).SetPixel(x, y, Color.FromArgb(R,G,B));
+        };
+            int dx, dy, dz;
+            int sx, sy, sz;
+            int accum, accum2;//accumilator
+
+            dx = endX - startX;//Start X subtracted from End X
+            dy = endY - startY;
+            dz = endZ - startZ;
+
+            sx = ((dx) < 0 ? -1 : ((dx) > 0 ? 1 : 0));//if dx is less than 0, sx = -1; otherwise if dx is greater than 0, sx = 1; otherwise sx = 0
+            sy = ((dy) < 0 ? -1 : ((dy) > 0 ? 1 : 0));
+            sz = ((dz) < 0 ? -1 : ((dz) > 0 ? 1 : 0));
+
+            //dx = (dx < 0 ? -dx : dx);//if dx is less than 0, dx = -dx (becomes positive), otherwise nothing changes
+            dx = Math.Abs(dx);//Absolute value
+            //dy = (dy < 0 ? -dy : dy);
+            dy = Math.Abs(dy);
+
+            dz = Math.Abs(dz);
+
+            endX += sx;//Add sx to End X
+            endY += sy;
+            endZ += sz;
+
+            if (dx > dy)//if dx is greater than dy
+            {
+                if (dx > dz)
+                {
+                    accum = dx >> 1;
+                    accum2 = accum;
+                    do
+                    {
+
+                        callback(startX, startY, startZ);
+
+                        accum -= dy;
+                        accum2 -= dz;
+                        if (accum < 0)
+                        {
+                            accum += dx;
+                            startY += sy;
+                        }
+                        if (accum2 < 0)
+                        {
+                            accum2 += dx;
+                            startZ += sz;
+                        }
+                        startX += sx;
+                    }
+                    while (startX != endX);
+                }
+                else
+                {
+                    accum = dz >> 1;
+                    accum2 = accum;
+                    do
+                    {
+                        callback(startX, startY, startZ);
+
+                        accum -= dy;
+                        accum2 -= dx;
+                        if (accum < 0)
+                        {
+                            accum += dz;
+                            startY += sy;
+                        }
+                        if (accum2 < 0)
+                        {
+                            accum2 += dz;
+                            startX += sx;
+                        }
+                        startZ += sz;
+                    }
+                    while (startZ != endZ);
+                }
+            }
+            else
+            {
+                if (dy > dz)
+                {
+                    accum = dy >> 1;
+                    accum2 = accum;
+                    do
+                    {
+                        callback(startX, startY, startZ);
+
+                        accum -= dx;
+                        accum2 -= dz;
+                        if (accum < 0)
+                        {
+                            accum += dx;
+                            startX += sx;
+                        }
+                        if (accum2 < 0)
+                        {
+                            accum2 += dx;
+                            startZ += sz;
+                        }
+                        startY += sy;
+                    }
+                    while (startY != endY);
+                }
+                else
+                {
+                    accum = dz >> 1;
+                    accum2 = accum;
+                    do
+                    {
+                        callback(startX, startY, startZ);
+
+                        accum -= dx;
+                        accum2 -= dy;
+                        if (accum < 0)
+                        {
+                            accum += dx;
+                            startX += sx;
+                        }
+                        if (accum2 < 0)
+                        {
+                            accum2 += dx;
+                            startY += sy;
+                        }
+                        startZ += sz;
+                    }
+                    while (startZ != endZ);
+                }
+            }
         }
         public Form1()
         {
@@ -53,97 +296,107 @@ namespace GK3D
             aTimer.Elapsed += new ElapsedEventHandler(OnTimedEvent);
             aTimer.Interval = 50;
             aTimer.Enabled = true;
-
             InitializeComponent();
-            c = new Cube();
-            c.addEdge(new Edge(new Vector4(0, 0, 0, 1), new Vector4(1, 0, 0, 1)));
-            c.addEdge(new Edge(new Vector4(1, 0, 0, 1), new Vector4(1, 0, 1, 1)));
-            c.addEdge(new Edge(new Vector4(1, 0, 1, 1), new Vector4(0, 0, 1, 1)));
-            c.addEdge(new Edge(new Vector4(0, 0, 1, 1), new Vector4(0, 0, 0, 1)));
 
-            c.addEdge(new Edge(new Vector4(0, 1, 0, 1), new Vector4(1, 1, 0, 1)));
-            c.addEdge(new Edge(new Vector4(1, 1, 0, 1), new Vector4(1, 1, 1, 1)));
-            c.addEdge(new Edge(new Vector4(1, 1, 1, 1), new Vector4(0, 1, 1, 1)));
-            c.addEdge(new Edge(new Vector4(0, 1, 1, 1), new Vector4(0, 1, 0, 1)));
+            Graphic3D.width = pictureBox1.Width;
+            Graphic3D.height = pictureBox1.Height;
 
-            c.addEdge(new Edge(new Vector4(0, 0, 0, 1), new Vector4(0, 1, 0, 1)));
-            c.addEdge(new Edge(new Vector4(1, 0, 0, 1), new Vector4(1, 1, 0, 1)));
-            c.addEdge(new Edge(new Vector4(1, 0, 1, 1), new Vector4(1, 1, 1, 1)));
-            c.addEdge(new Edge(new Vector4(0, 0, 1, 1), new Vector4(0, 1, 1, 1)));
+            c = new Object3D();
+            Polygon poly= new Polygon();
+
+            poly.addEdge(new Edge(new Vector4(0, 0, 0, 1), new Vector4(1, 0, 0, 1)));
+            poly.addEdge(new Edge(new Vector4(1, 0, 0, 1), new Vector4(1, 0, 1, 1)));
+            poly.addEdge(new Edge(new Vector4(1, 0, 1, 1), new Vector4(0, 0, 1, 1)));
+            poly.addEdge(new Edge(new Vector4(0, 0, 1, 1), new Vector4(0, 0, 0, 1)));
+            c.addPolygon(poly);
+            poly = new Polygon();
+            poly.addEdge(new Edge(new Vector4(0, 1, 0, 1), new Vector4(1, 1, 0, 1)));
+            poly.addEdge(new Edge(new Vector4(1, 1, 0, 1), new Vector4(1, 1, 1, 1)));
+            poly.addEdge(new Edge(new Vector4(1, 1, 1, 1), new Vector4(0, 1, 1, 1)));
+            poly.addEdge(new Edge(new Vector4(0, 1, 1, 1), new Vector4(0, 1, 0, 1)));
+            c.addPolygon(poly);
+            poly = new Polygon();
+
+            poly.addEdge(new Edge(new Vector4(0, 0, 0, 1), new Vector4(1, 0, 0, 1)));
+            poly.addEdge(new Edge(new Vector4(1, 0, 0, 1), new Vector4(1, 1, 0, 1)));
+            poly.addEdge(new Edge(new Vector4(1, 1, 0, 1), new Vector4(0, 1, 0, 1)));
+            poly.addEdge(new Edge(new Vector4(0, 1, 0, 1), new Vector4(0, 0, 0, 1)));
+            c.addPolygon(poly);
+            poly = new Polygon();
+            poly.addEdge(new Edge(new Vector4(0, 0, 1, 1), new Vector4(1, 0, 1, 1)));
+            poly.addEdge(new Edge(new Vector4(1, 0, 1, 1), new Vector4(1, 1, 1, 1)));
+            poly.addEdge(new Edge(new Vector4(1, 1, 1, 1), new Vector4(0, 1, 1, 1)));
+            poly.addEdge(new Edge(new Vector4(0, 1, 1, 1), new Vector4(0, 0, 1, 1)));
+            c.addPolygon(poly);
+            poly = new Polygon();
+            poly.addEdge(new Edge(new Vector4(0, 0, 0, 1), new Vector4(0, 0, 1, 1)));
+            poly.addEdge(new Edge(new Vector4(0, 0, 1, 1), new Vector4(0, 1, 1, 1)));
+            poly.addEdge(new Edge(new Vector4(0, 1, 1, 1), new Vector4(0, 1, 0, 1)));
+            poly.addEdge(new Edge(new Vector4(0, 1, 0, 1), new Vector4(0, 0, 0, 1)));
+            c.addPolygon(poly);
+            poly = new Polygon();
+            poly.addEdge(new Edge(new Vector4(1, 0, 0, 1), new Vector4(1, 0, 1, 1)));
+            poly.addEdge(new Edge(new Vector4(1, 0, 1, 1), new Vector4(1, 1, 1, 1)));
+            poly.addEdge(new Edge(new Vector4(1, 1, 1, 1), new Vector4(1, 1, 0, 1)));
+            poly.addEdge(new Edge(new Vector4(1, 1, 0, 1), new Vector4(1, 0, 0, 1)));
+            c.addPolygon(poly);
+            poly = new Polygon();
+
             Bitmap bm = new Bitmap(pictureBox1.Width, pictureBox1.Height);
             pictureBox1.Image = bm;
         }
-        static private Matrix4x4 CreateViewAt(double CPx, double CPy, double CPz, double CTx, double CTy, double CTz, double UPVx, double UPVy, double UPVz)
-        {
-            double zAxis_X = CPx - CTx;
-            double zAxis_Y = CPy - CTy;
-            double zAxis_Z = CPz - CTz;
-            double nom = Math.Sqrt(zAxis_X * zAxis_X + zAxis_Y * zAxis_Y + zAxis_Z * zAxis_Z);
-            double zAxis_XW = zAxis_X /nom;
-            double zAxis_YW = zAxis_Y / nom;
-            double zAxis_ZW = zAxis_Z / nom;
-
-            double xAxis_X = UPVy * zAxis_ZW - UPVz * zAxis_YW;
-            double xAxis_Y = UPVz * zAxis_XW - UPVx * zAxis_ZW;
-            double xAxis_Z = UPVx * zAxis_YW - UPVy * zAxis_XW;
-            nom = Math.Sqrt(xAxis_X * xAxis_X + xAxis_Y * xAxis_Y + xAxis_Z * xAxis_Z);
-            double xAxis_XW = xAxis_X / nom;
-            double xAxis_YW = xAxis_Y / nom;
-            double xAxis_ZW = xAxis_Z / nom;
-
-            double yAxis_X = zAxis_YW * xAxis_ZW - zAxis_ZW * xAxis_YW;
-            double yAxis_Y = zAxis_ZW * xAxis_XW - zAxis_XW * xAxis_ZW;
-            double yAxis_Z = zAxis_XW * xAxis_YW - zAxis_YW * xAxis_XW;
-            nom = Math.Sqrt(yAxis_X * yAxis_X + yAxis_Y * yAxis_Y + yAxis_Z * yAxis_Z);
-            double yAxis_XW = yAxis_X / nom;
-            double yAxis_YW = yAxis_Y / nom;
-            double yAxis_ZW = yAxis_Z / nom;
-            Matrix4x4 rtMatrix;
-            Matrix4x4.Invert(new Matrix4x4(
-                (float)xAxis_XW, (float)yAxis_XW, (float)zAxis_XW, (float)CPx,
-                (float)xAxis_YW, (float)yAxis_YW, (float)zAxis_YW, (float)CPy,
-                (float)xAxis_ZW, (float)yAxis_ZW, (float)zAxis_ZW, (float)CPz,
-                0, 0, 0, 1), out rtMatrix);
-            return rtMatrix;
-        }
-        public Vector4 CreatePoint(Vector4 point)
-        {
-            Vector4 pp = Normalize4(MultiplyV4(Mproj, MultiplyV4(Mview, MultiplyV4(Mmodel, new Vector4(point.X, point.Y, point.Z, point.W)))));
-            pp.X = (pp.X + 1) / 2 * pictureBox1.Width;
-            pp.Y = (pp.Y + 1) / 2 * pictureBox1.Height;
-            return pp;
-        }
-        public Vector4 Normalize4(Vector4 v)
-        {
-            return new Vector4(v.X / v.W, v.Y / v.W, v.Z / v.W, 1);
-        }
-        public Vector4 MultiplyV4(Matrix4x4 m4, Vector4 v4)
-        {
-            Matrix4x4 nm = new Matrix4x4(v4.X, 0, 0, 0,
-                v4.Y, 0, 0, 0,
-                v4.Z, 0, 0, 0,
-                v4.W, 0, 0, 0);
-            Matrix4x4 mm = Matrix4x4.Multiply(m4, nm);
-            return new Vector4(mm.M11, mm.M21, mm.M31, mm.M41);
-        }
+        
     }
-    public class Cube
+    public class Polygon
     {
         public List<Edge> edgeList = new List<Edge>();
-
         public void addEdge(Edge e)
         {
             edgeList.Add(e);
+        }
+        static public Polygon convertTo2D(Polygon polygon)
+        {
+            Polygon newPoly = new Polygon();
+            foreach(Edge e in polygon.edgeList)
+            {
+                newPoly.addEdge(new Edge(Graphic3D.CreatePoint(e.firstPoint), Graphic3D.CreatePoint(e.secondPoint)));
+            }
+            return newPoly;
+        }
+        public Vector3 getNormalVector()
+        {
+            Vector3 v1 = new Vector3(edgeList[0].firstPoint.X, edgeList[0].firstPoint.Y, edgeList[0].firstPoint.Z);
+            Vector3 v2 = new Vector3(edgeList[1].firstPoint.X, edgeList[1].firstPoint.Y, edgeList[1].firstPoint.Z);
+            Vector3 cross = Vector3.Cross(v1, v2);
+            return cross;
+        }
+    }
+    public class Object3D
+    {
+        public List<Polygon> polygonList = new List<Polygon>();
+        public void addPolygon(Polygon e)
+        {
+            polygonList.Add(e);
         }
     }
     public class Edge
     {
         public Vector4 firstPoint;
         public Vector4 secondPoint;
-        public Edge(Vector4 fp, Vector4 sp)
+        public Edge(Vector4 myPoint1, Vector4 myPoint2)
         {
-            firstPoint = fp;
-            secondPoint = sp;
+            firstPoint = myPoint1;
+            secondPoint = myPoint2;
+            if (m < 0)
+                x = Math.Min(myPoint1.X, myPoint2.X);
+            else
+                x = Math.Max(myPoint1.X, myPoint2.X);
         }
+
+        public int yMax { get { return (int) Math.Min(firstPoint.Y, secondPoint.Y) + 1; } }
+        public double x { get; set; }
+        public double z { get { return (firstPoint.Z - secondPoint.Z / 2.0); } }
+        public double m { get { if (firstPoint.Y == secondPoint.Y) return 0;
+                return (double)(firstPoint.X - secondPoint.X) / (double)(firstPoint.Y - secondPoint.Y); } }
     }
 }
