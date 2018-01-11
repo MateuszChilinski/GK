@@ -13,14 +13,14 @@ namespace GK3D
            0, 1, 0, 0,
            0, 0, 1, 0,
            0, 0, 0, 1);
-        public static Matrix4x4 Mview { get; set; } = CreateViewAt(3.5, 0.5, 0.5, 0, 0.1, 0.5, 0, 0, 1);
+        public static Matrix4x4 Mview { get; set; } = CreateViewAt(3.0, 0.5, 0.5, 0, 0.5, 0.5, 0, 0, 1);
         public static Matrix4x4 Mproj { get; set; } = new Matrix4x4(2.414213562F, 0, 0, 0,
                         0, 2.414213562F, 0, 0,
                         0, 0, -1.02020202F, -2.02020202F,
                         0, 0, -1, 0);
         public static int width { get; set; } = 0;
         public static int height { get; set; } = 0;
-        static private Matrix4x4 CreateViewAt(double CPx, double CPy, double CPz, double CTx, double CTy, double CTz, double UPVx, double UPVy, double UPVz)
+        static public Matrix4x4 CreateViewAt(double CPx, double CPy, double CPz, double CTx, double CTy, double CTz, double UPVx, double UPVy, double UPVz)
         {
             double zAxis_X = CPx - CTx;
             double zAxis_Y = CPy - CTy;
@@ -60,9 +60,14 @@ namespace GK3D
         static public Vector4 CreatePoint(Vector4 point, Matrix4x4 MatrixView, Matrix4x4 MatrixModel, Matrix4x4 MatrixProj)
         {
             Vector4 pp = Normalize4(MultiplyV4(MatrixProj, MultiplyV4(MatrixView, MultiplyV4(MatrixModel, new Vector4(point.X, point.Y, point.Z, point.W)))));
-            pp.X = (pp.X + 1) / 2 * width / 3 + width/4;
-            pp.Y = (pp.Y + 1) / 2 * height /3 + height/4;
+            pp.X = (pp.X + 1) / 2 * width / 3 + 1.2F*width/3;
+            pp.Y = (pp.Y + 1) / 2 * height /3 + height/3;
             pp.Z = (pp.Z + 1) / 2 * 100;
+            return pp;
+        }
+        static public Vector4 CreatePoint3D(Vector4 point, Matrix4x4 Mmodel2)
+        {
+            Vector4 pp = Normalize4(MultiplyV4(Mmodel2, new Vector4(point.X, point.Y, point.Z, point.W)));
             return pp;
         }
         static public Vector4 Normalize4(Vector4 v)
@@ -77,6 +82,11 @@ namespace GK3D
                 v4.W, 0, 0, 0);
             Matrix4x4 mm = Matrix4x4.Multiply(m4, nm);
             return new Vector4(mm.M11, mm.M21, mm.M31, mm.M41);
+        }
+
+        internal static Vector4 CreatePoint(Vector4 p1, Matrix4x4 mmodel1)
+        {
+            return CreatePoint(p1, Mview, mmodel1, Mproj);
         }
     }
 }
