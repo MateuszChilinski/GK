@@ -16,103 +16,203 @@ namespace GK3D
 {
     public partial class Form1 : Form
     {
-        int[,] zindex;
+        float[,] zindex;
         static double t = 0;
         Object3D c;
         int R = 255, G = 0, B = 0;
 
-        private void PictureBox1_Paint(object sender, PaintEventArgs e)
+        public Object3D[] LoadJSONFile(string fileName)
         {
-            pictureBox1.Image = new Bitmap(pictureBox1.Width, pictureBox1.Height);
-            Graphics g = Graphics.FromImage(pictureBox1.Image);
-            int i = 0;
-            zindex = new int[pictureBox1.Width, pictureBox1.Height];
-            for(int j = 0; j < pictureBox1.Width; j++)
+            var meshes = new List<Object3D>();
+            var file = System.IO.File.ReadAllText(fileName);
+            dynamic jsonObject = Newtonsoft.Json.JsonConvert.DeserializeObject(file);
+
+            for (var meshIndex = 0; meshIndex < jsonObject.meshes.Count; meshIndex++)
             {
-                for(int k = 0; k < pictureBox1.Height; k++)
-                {
-                    zindex[j, k] = Int32.MaxValue;
-                }
-            }
-            foreach (Polygon poly in c.polygonList)
-            {
-                switch(i)
+                var verticesArray = jsonObject.meshes[meshIndex].vertices;
+                // Faces
+                var indicesArray = jsonObject.meshes[meshIndex].indices;
+
+                var uvCount = jsonObject.meshes[meshIndex].uvCount.Value;
+                var verticesStep = 1;
+
+                // Depending of the number of texture's coordinates per vertex
+                // we're jumping in the vertices array  by 6, 8 & 10 windows frame
+                switch ((int)uvCount)
                 {
                     case 0:
-                        R = 255; G = 0; B = 0;
+                        verticesStep = 6;
                         break;
                     case 1:
-                        R = 0; G = 255; B = 0;
+                        verticesStep = 8;
                         break;
                     case 2:
-                        R = 0; G = 0; B = 255;
-                        break;
-                    case 3:
-                        R = 255; G = 255; B = 0;
-                        break;
-                    case 4:
-                        R = 255; G = 0; B = 255;
-                        break;
-                    case 5:
-                        R = 0; G = 0; B = 0;
-                        break;
-                    case 6:
-                        R = 255; G = 111; B = 102;
-                        break;
-                    default:
-                        R = 0; G = 255; B = 255;
+                        verticesStep = 10;
                         break;
                 }
-                i++;
-                FillPolygon(e, Polygon.convertTo2D(poly).edgeList);
-                pictureBox1.Invalidate();
+
+                // the number of interesting vertices information for us
+                var verticesCount = verticesArray.Count / verticesStep;
+                // number of faces is logically the size of the array divided by 3 (A, B, C)
+                var facesCount = indicesArray.Count / 3;
+                var mesh = new Object3D();
+
+                // Filling the Vertices array of our mesh first
+                for (var index = 0; index < verticesCount; index++)
+                {
+                    var x = (float)verticesArray[index * verticesStep].Value;
+                    var y = (float)verticesArray[index * verticesStep + 1].Value;
+                    var z = (float)verticesArray[index * verticesStep + 2].Value;
+                    mesh.addPoint(new Vector4(x, y, z, 1));
+                }
+
+                // Then filling the Faces array
+                for (var index = 0; index < facesCount; index++)
+                {
+                    var a = (int)indicesArray[index * 3].Value;
+                    var b = (int)indicesArray[index * 3 + 1].Value;
+                    var c = (int)indicesArray[index * 3 + 2].Value;
+                    mesh.addTriangle(new Triangle{ p1 = a, p2 = b, p3 = c });
+                }
+
+                // Getting the position you've set in Blender
+                var position = jsonObject.meshes[meshIndex].position;
+                //mesh.Position = new Vector3((float)position[0].Value, (float)position[1].Value, (float)position[2].Value);
+                meshes.Add(mesh);
             }
+            return meshes.ToArray();
         }
-        private void FillPolygon(PaintEventArgs e, List<Edge> edges)
+        Bitmap tmpBtmp;
+        private void PictureBox1_Paint(object sender, PaintEventArgs e)
         {
-            List<Vector4> points = new List<Vector4>();
-
-            List<Edge>[] EA = new List<Edge>[pictureBox1.Height];
-            for (int i = 0; i < pictureBox1.Height; i++)
+            Graphic3D.Mmodel = new Matrix4x4((float)Math.Cos(t), (float)(-Math.Sin(t)), 0, (float)(0.5 * Math.Sin(t)),
+           (float)Math.Sin(t), (float)Math.Cos(t), 0, (float)(0.5 * Math.Sin(t)),
+           0, 0, 1, (float)(0.5 * Math.Sin(t)),
+           0, 0, 0, 1);
+            t += 0.05;
+            Graphics g = Graphics.FromImage(pictureBox1.Image);
+            int i = 0;
+            zindex = new float[pictureBox1.Width, pictureBox1.Height];
+            tmpBtmp = new Bitmap(pictureBox1.Width, pictureBox1.Height);
+            for (int k = 0; k < pictureBox1.Width; k++)
             {
-                EA[i] = new List<Edge>();
+                for (int j = 0; j < pictureBox1.Height; j++)
+                    zindex[k, j] = float.MaxValue;
             }
-            foreach(Edge ed in edges)
+
+            foreach (Triangle poly in c.triangleList)
             {
-                EA[(int) Math.Max(ed.firstPoint.Y, ed.secondPoint.Y)].Add(ed);
+                var color = 0.25f + (i % c.triangleList.Count) * 0.75f / c.triangleList.Count;
+
+                var p1 = c.pointList[poly.p1];
+                var p2 = c.pointList[poly.p2];
+                var p3 = c.pointList[poly.p3];
+
+                var pixelA = Graphic3D.CreatePoint(p1);
+                var pixelB = Graphic3D.CreatePoint(p2);
+                var pixelC = Graphic3D.CreatePoint(p3);
+
+                DrawTriangle(pixelA, pixelB, pixelC, new Vector4(color*255, color * 255, color * 255, 1));
+                i++;
             }
-            List<Edge> AET = new List<Edge>();
-            for (int y = pictureBox1.Height - 1; y >= 0; y--)
+            pictureBox1.Image = tmpBtmp;
+        }
+        float Clamp(float value, float min = 0, float max = 1)
+        {
+            return Math.Max(min, Math.Min(value, max));
+        }
+        
+        float Interpolate(float min, float max, float gradient)
+        {
+            return min + (max - min) * Clamp(gradient);
+        }
+        
+        void ProcessScanLine(int y, Vector4 pa, Vector4 pb, Vector4 pc, Vector4 pd, Vector4 color)
+        {
+            var gradient1 = pa.Y != pb.Y ? (y - pa.Y) / (pb.Y - pa.Y) : 1;
+            var gradient2 = pc.Y != pd.Y ? (y - pc.Y) / (pd.Y - pc.Y) : 1;
+
+            int sx = (int)Interpolate(pa.X, pb.X, gradient1);
+            int ex = (int)Interpolate(pc.X, pd.X, gradient2);
+            
+            float z1 = Interpolate(pa.Z, pb.Z, gradient1);
+            float z2 = Interpolate(pc.Z, pd.Z, gradient2);
+            
+            for (var x = sx; x < ex; x++)
             {
-                foreach (var z in EA[y])
-                    AET.Add(z);
-                AET = AET.OrderBy(edge => edge.x).ToList();
-                List<int> toRemove = new List<int>();
-                for (int i = 0; i < AET.Count - 1; i += 2)
-                {
-                    DrawLine((int)AET[i].x, (int)AET[i + 1].x, y, Math.Max((int)AET[i].z, (int)AET[i+1].z), e, false);
-                }
+                float gradient = (x - sx) / (float)(ex - sx);
 
-                for (int i = 0; i < AET.Count; i++)
-                {
-                    if (AET[i].yMax == y)
-                        toRemove.Add(i);
-                }
+                var z = Interpolate(z1, z2, gradient);
+                DrawPoint(new Vector4(x, y, z, 1), color);
+            }
+        }
 
-                for (int i = 0; i < AET.Count; i++)
+        public void DrawTriangle(Vector4 p1, Vector4 p2, Vector4 p3, Vector4 color)
+        {
+            if (p1.Y > p2.Y)
+            {
+                var temp = p2;
+                p2 = p1;
+                p1 = temp;
+            }
+
+            if (p2.Y > p3.Y)
+            {
+                var temp = p2;
+                p2 = p3;
+                p3 = temp;
+            }
+
+            if (p1.Y > p2.Y)
+            {
+                var temp = p2;
+                p2 = p1;
+                p1 = temp;
+            }
+            float dP1P2, dP1P3;
+            
+            if (p2.Y - p1.Y > 0)
+                dP1P2 = (p2.X - p1.X) / (p2.Y - p1.Y);
+            else
+                dP1P2 = 0;
+
+            if (p3.Y - p1.Y > 0)
+                dP1P3 = (p3.X - p1.X) / (p3.Y - p1.Y);
+            else
+                dP1P3 = 0;
+            
+            // first triangle
+            if (dP1P2 > dP1P3)
+            {
+                for (var y = (int)p1.Y; y <= (int)p3.Y; y++)
                 {
-                    AET[i].x -= AET[i].m;
-                    if (AET[i].x < 0)
-                        toRemove.Add(i);
+                    if (y < p2.Y)
+                    {
+                        ProcessScanLine(y, p1, p3, p1, p2, color);
+                    }
+                    else
+                    {
+                        ProcessScanLine(y, p1, p3, p2, p3, color);
+                    }
                 }
-                toRemove = toRemove.Distinct().ToList();
-                toRemove = toRemove.OrderByDescending(i => i).ToList();
-                foreach (int z in toRemove)
+            }
+            // second triangle
+            else
+            {
+                for (var y = (int)p1.Y; y <= (int)p3.Y; y++)
                 {
-                    AET.RemoveAt(z);
+                    if (y < p2.Y)
+                    {
+                        ProcessScanLine(y, p1, p2, p1, p3, color);
+                    }
+                    else
+                    {
+                        ProcessScanLine(y, p2, p3, p1, p3, color);
+                    }
                 }
             }
         }
+
         private Vector3 CalculateLight(Vector4 point, Vector3 lightPoint, Vector3 normal, Vector3 cameraPoint, Vector3 rgb)
         {
             // trzeba zamienic lightpointa na prawdziwy wektor, a nie wektor wspolrzednych
@@ -131,21 +231,23 @@ namespace GK3D
                     )));
 
         }
-        private void DrawLine(int x1, int x2, int y, int z, PaintEventArgs e, bool second)
+        public void DrawPoint(Vector4 point, Vector4 color)
         {
-            if (x1 > Width || x2 > Width || y > Height)
-                return;
-            DoLine(x1, y, z, x2, y, z);
-            //e.Graphics.DrawLine(myPen, x1, y, x2, y);
-            //DrawLine(new MyPoint(x1, y), new MyPoint(x2, y), e, second);
+            if (point.X >= 0 && point.Y >= 0 && point.X < pictureBox1.Width && point.Y < pictureBox1.Height)
+            {
+                PutPixel((int)point.X, (int)point.Y, point.Z, color);
+            }
         }
-        private static void OnTimedEvent(object source, ElapsedEventArgs e)
+        public void PutPixel(int x, int y, float z, Vector4 color)
         {
-            Graphic3D.Mmodel = new Matrix4x4((float)Math.Cos(t), (float)(-Math.Sin(t)), 0, (float) (0.5*Math.Sin(t)),
-                   (float)Math.Sin(t), (float)Math.Cos(t), 0, (float)(0.5 * Math.Sin(t)),
-                   0, 0, 1, (float)(0.5 * Math.Sin(t)),
-                   0, 0, 0, 1);
-            t += 0.05;
+            if (zindex[x,y] < z)
+            {
+                return;
+            }
+
+            zindex[x,y] = z;
+
+            tmpBtmp.SetPixel(x, y, Color.FromArgb((int)color.X, (int)color.Y, (int)color.Z));
         }
         public static void Swap<T>(ref T x, ref T y)
         {
@@ -153,230 +255,35 @@ namespace GK3D
             y = x;
             x = tmp;
         }
-        public void DoLine(int startX, int startY, int startZ, int endX, int endY, int endZ)
-        {
-            Action<int, int, int> callback = (x, y, z) => {
-                
-                if (x >= pictureBox1.Width || y >= pictureBox1.Height || zindex[x,y] < z)
-                    return;
-                zindex[x, y] = z;
-                ((Bitmap)pictureBox1.Image).SetPixel(x, y, Color.FromArgb(R,G,B));
-        };
-            int dx, dy, dz;
-            int sx, sy, sz;
-            int accum, accum2;//accumilator
-
-            dx = endX - startX;//Start X subtracted from End X
-            dy = endY - startY;
-            dz = endZ - startZ;
-
-            sx = ((dx) < 0 ? -1 : ((dx) > 0 ? 1 : 0));//if dx is less than 0, sx = -1; otherwise if dx is greater than 0, sx = 1; otherwise sx = 0
-            sy = ((dy) < 0 ? -1 : ((dy) > 0 ? 1 : 0));
-            sz = ((dz) < 0 ? -1 : ((dz) > 0 ? 1 : 0));
-
-            //dx = (dx < 0 ? -dx : dx);//if dx is less than 0, dx = -dx (becomes positive), otherwise nothing changes
-            dx = Math.Abs(dx);//Absolute value
-            //dy = (dy < 0 ? -dy : dy);
-            dy = Math.Abs(dy);
-
-            dz = Math.Abs(dz);
-
-            endX += sx;//Add sx to End X
-            endY += sy;
-            endZ += sz;
-
-            if (dx > dy)//if dx is greater than dy
-            {
-                if (dx > dz)
-                {
-                    accum = dx >> 1;
-                    accum2 = accum;
-                    do
-                    {
-
-                        callback(startX, startY, startZ);
-
-                        accum -= dy;
-                        accum2 -= dz;
-                        if (accum < 0)
-                        {
-                            accum += dx;
-                            startY += sy;
-                        }
-                        if (accum2 < 0)
-                        {
-                            accum2 += dx;
-                            startZ += sz;
-                        }
-                        startX += sx;
-                    }
-                    while (startX != endX);
-                }
-                else
-                {
-                    accum = dz >> 1;
-                    accum2 = accum;
-                    do
-                    {
-                        callback(startX, startY, startZ);
-
-                        accum -= dy;
-                        accum2 -= dx;
-                        if (accum < 0)
-                        {
-                            accum += dz;
-                            startY += sy;
-                        }
-                        if (accum2 < 0)
-                        {
-                            accum2 += dz;
-                            startX += sx;
-                        }
-                        startZ += sz;
-                    }
-                    while (startZ != endZ);
-                }
-            }
-            else
-            {
-                if (dy > dz)
-                {
-                    accum = dy >> 1;
-                    accum2 = accum;
-                    do
-                    {
-                        callback(startX, startY, startZ);
-
-                        accum -= dx;
-                        accum2 -= dz;
-                        if (accum < 0)
-                        {
-                            accum += dx;
-                            startX += sx;
-                        }
-                        if (accum2 < 0)
-                        {
-                            accum2 += dx;
-                            startZ += sz;
-                        }
-                        startY += sy;
-                    }
-                    while (startY != endY);
-                }
-                else
-                {
-                    accum = dz >> 1;
-                    accum2 = accum;
-                    do
-                    {
-                        callback(startX, startY, startZ);
-
-                        accum -= dx;
-                        accum2 -= dy;
-                        if (accum < 0)
-                        {
-                            accum += dx;
-                            startX += sx;
-                        }
-                        if (accum2 < 0)
-                        {
-                            accum2 += dx;
-                            startY += sy;
-                        }
-                        startZ += sz;
-                    }
-                    while (startZ != endZ);
-                }
-            }
-        }
+        
         public Form1()
         {
-
-            System.Timers.Timer aTimer = new System.Timers.Timer();
-            aTimer.Elapsed += new ElapsedEventHandler(OnTimedEvent);
-            aTimer.Interval = 50;
-            aTimer.Enabled = true;
             InitializeComponent();
-
+            DoubleBuffered = true;
             Graphic3D.width = pictureBox1.Width;
             Graphic3D.height = pictureBox1.Height;
-
-            c = new Object3D();
-            Polygon poly= new Polygon();
-
-            poly.addEdge(new Edge(new Vector4(0, 0, 0, 1), new Vector4(1, 0, 0, 1)));
-            poly.addEdge(new Edge(new Vector4(1, 0, 0, 1), new Vector4(1, 0, 1, 1)));
-            poly.addEdge(new Edge(new Vector4(1, 0, 1, 1), new Vector4(0, 0, 1, 1)));
-            poly.addEdge(new Edge(new Vector4(0, 0, 1, 1), new Vector4(0, 0, 0, 1)));
-            c.addPolygon(poly);
-            poly = new Polygon();
-            poly.addEdge(new Edge(new Vector4(0, 1, 0, 1), new Vector4(1, 1, 0, 1)));
-            poly.addEdge(new Edge(new Vector4(1, 1, 0, 1), new Vector4(1, 1, 1, 1)));
-            poly.addEdge(new Edge(new Vector4(1, 1, 1, 1), new Vector4(0, 1, 1, 1)));
-            poly.addEdge(new Edge(new Vector4(0, 1, 1, 1), new Vector4(0, 1, 0, 1)));
-            c.addPolygon(poly);
-            poly = new Polygon();
-
-            poly.addEdge(new Edge(new Vector4(0, 0, 0, 1), new Vector4(1, 0, 0, 1)));
-            poly.addEdge(new Edge(new Vector4(1, 0, 0, 1), new Vector4(1, 1, 0, 1)));
-            poly.addEdge(new Edge(new Vector4(1, 1, 0, 1), new Vector4(0, 1, 0, 1)));
-            poly.addEdge(new Edge(new Vector4(0, 1, 0, 1), new Vector4(0, 0, 0, 1)));
-            c.addPolygon(poly);
-            poly = new Polygon();
-            poly.addEdge(new Edge(new Vector4(0, 0, 1, 1), new Vector4(1, 0, 1, 1)));
-            poly.addEdge(new Edge(new Vector4(1, 0, 1, 1), new Vector4(1, 1, 1, 1)));
-            poly.addEdge(new Edge(new Vector4(1, 1, 1, 1), new Vector4(0, 1, 1, 1)));
-            poly.addEdge(new Edge(new Vector4(0, 1, 1, 1), new Vector4(0, 0, 1, 1)));
-            c.addPolygon(poly);
-            poly = new Polygon();
-            poly.addEdge(new Edge(new Vector4(0, 0, 0, 1), new Vector4(0, 0, 1, 1)));
-            poly.addEdge(new Edge(new Vector4(0, 0, 1, 1), new Vector4(0, 1, 1, 1)));
-            poly.addEdge(new Edge(new Vector4(0, 1, 1, 1), new Vector4(0, 1, 0, 1)));
-            poly.addEdge(new Edge(new Vector4(0, 1, 0, 1), new Vector4(0, 0, 0, 1)));
-            c.addPolygon(poly);
-            poly = new Polygon();
-            poly.addEdge(new Edge(new Vector4(1, 0, 0, 1), new Vector4(1, 0, 1, 1)));
-            poly.addEdge(new Edge(new Vector4(1, 0, 1, 1), new Vector4(1, 1, 1, 1)));
-            poly.addEdge(new Edge(new Vector4(1, 1, 1, 1), new Vector4(1, 1, 0, 1)));
-            poly.addEdge(new Edge(new Vector4(1, 1, 0, 1), new Vector4(1, 0, 0, 1)));
-            c.addPolygon(poly);
-            poly = new Polygon();
+            c = LoadJSONFile("monkey.babylon")[0];
 
             Bitmap bm = new Bitmap(pictureBox1.Width, pictureBox1.Height);
             pictureBox1.Image = bm;
         }
         
     }
-    public class Polygon
+    public struct Triangle
     {
-        public List<Edge> edgeList = new List<Edge>();
-        public void addEdge(Edge e)
-        {
-            edgeList.Add(e);
-        }
-        static public Polygon convertTo2D(Polygon polygon)
-        {
-            Polygon newPoly = new Polygon();
-            foreach(Edge e in polygon.edgeList)
-            {
-                newPoly.addEdge(new Edge(Graphic3D.CreatePoint(e.firstPoint), Graphic3D.CreatePoint(e.secondPoint)));
-            }
-            return newPoly;
-        }
-        public Vector3 getNormalVector()
-        {
-            Vector3 v1 = new Vector3(edgeList[0].firstPoint.X, edgeList[0].firstPoint.Y, edgeList[0].firstPoint.Z);
-            Vector3 v2 = new Vector3(edgeList[1].firstPoint.X, edgeList[1].firstPoint.Y, edgeList[1].firstPoint.Z);
-            Vector3 cross = Vector3.Cross(v1, v2);
-            return cross;
-        }
+        public int p1, p2, p3;
     }
     public class Object3D
     {
-        public List<Polygon> polygonList = new List<Polygon>();
-        public void addPolygon(Polygon e)
+        public List<Triangle> triangleList = new List<Triangle>();
+        public List<Vector4> pointList = new List<Vector4>();
+        public void addTriangle(Triangle e)
         {
-            polygonList.Add(e);
+            triangleList.Add(e);
+        }
+        public void addPoint(Vector4 e)
+        {
+            pointList.Add(e);
         }
     }
     public class Edge
@@ -398,5 +305,15 @@ namespace GK3D
         public double z { get { return (firstPoint.Z - secondPoint.Z / 2.0); } }
         public double m { get { if (firstPoint.Y == secondPoint.Y) return 0;
                 return (double)(firstPoint.X - secondPoint.X) / (double)(firstPoint.Y - secondPoint.Y); } }
+    }
+    public class MyPB : PictureBox
+    {
+        public MyPB()
+        {
+            this.DoubleBuffered = true;
+            this.SetStyle(ControlStyles.AllPaintingInWmPaint, true);
+            this.SetStyle(ControlStyles.OptimizedDoubleBuffer, true);
+            this.UpdateStyles();
+        }
     }
 }
