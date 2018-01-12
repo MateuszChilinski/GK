@@ -56,16 +56,18 @@ namespace GK3D
                 // number of faces is logically the size of the array divided by 3 (A, B, C)
                 var facesCount = indicesArray.Count / 3;
                 var mesh = new Object3D();
-
-                // Filling the Vertices array of our mesh first
+                
                 for (var index = 0; index < verticesCount; index++)
                 {
                     var x = (float)verticesArray[index * verticesStep].Value;
                     var y = (float)verticesArray[index * verticesStep + 1].Value;
                     var z = (float)verticesArray[index * verticesStep + 2].Value;
-                    mesh.addPoint(new Vector4(x, y, z, 1));
+                    // Loading the vertex normal exported by Blender
+                    var nx = (float)verticesArray[index * verticesStep + 3].Value;
+                    var ny = (float)verticesArray[index * verticesStep + 4].Value;
+                    var nz = (float)verticesArray[index * verticesStep + 5].Value;
+                    mesh.addPoint(new MyPoint(new Vector4(x,y,z,1), new Vector4(nx, ny, nz, 1)));
                 }
-
                 // Then filling the Faces array
                 for (var index = 0; index < facesCount; index++)
                 {
@@ -92,7 +94,7 @@ namespace GK3D
            
             tmpBtmp = new Bitmap(pictureBox1.Width, pictureBox1.Height);
             using (Graphics gfx = Graphics.FromImage(tmpBtmp))
-            using (SolidBrush brush = new SolidBrush(Color.White))
+            using (SolidBrush brush = new SolidBrush(Color.Black))
             {
                 gfx.FillRectangle(brush, 0, 0, pictureBox1.Width, pictureBox1.Height);
             }
@@ -107,14 +109,13 @@ namespace GK3D
             {
                 if (radioButton2.Checked == true)
                 {
-                    var followed = Graphic3D.CreatePoint3D(objects[1].pointList[5], objects[1].MModel);
-                    Graphic3D.Mview = Graphic3D.CreateViewAt(3.0, 0.5, 0.5, followed.X, followed.Y, followed.Z, 0, 0, 1);
+                    Graphic3D.Mview = Graphic3D.CreateViewAt(3.0, 0.5, 0.5, objects[1].pointList[5]._currentCoords.X, objects[1].pointList[5]._currentCoords.Y, objects[1].pointList[5]._currentCoords.Z, 0, 0, 1);
                 }
                 if (radioButton3.Checked == true)
                 {
-                    var followed1 = Graphic3D.CreatePoint3D(objects[1].pointList[5], objects[1].MModel);
-                    var followed2 = Graphic3D.CreatePoint3D(objects[0].pointList[5], objects[1].MModel);
-                    Graphic3D.Mview = Graphic3D.CreateViewAt(followed1.X+2, followed1.Y + 2, followed1.Z + 2, followed1.X, followed1.Y, followed1.Z, 0, 0, 1);
+                    //var followed1 = Graphic3D.CreatePoint3D(objects[1].pointList[5], objects[1].MModel);
+                    Graphic3D.Mview = Graphic3D.CreateViewAt(objects[1].pointList[5]._currentCoords.X + 2, objects[1].pointList[5]._currentCoords.Y + 2, objects[1].pointList[5]._currentCoords.Z + 2, objects[1].pointList[5]._currentCoords.X, objects[1].pointList[5]._currentCoords.Y,
+                        objects[1].pointList[5]._currentCoords.Z, 0, 0, 1);
                 }
                 int k = 0;
                 foreach (Object3D c in objects)
@@ -122,17 +123,14 @@ namespace GK3D
                     //if (k++ == 0) continue;
                     foreach (Triangle poly in c.triangleList)
                     {
-                        var color = 0.25f + (i % c.triangleList.Count) * 0.75f / c.triangleList.Count;
+                        var color = 1.0f;
 
                         var p1 = c.pointList[poly.p1];
                         var p2 = c.pointList[poly.p2];
                         var p3 = c.pointList[poly.p3];
+                        
 
-                        var pixelA = Graphic3D.CreatePoint(p1, c.MModel);
-                        var pixelB = Graphic3D.CreatePoint(p2, c.MModel);
-                        var pixelC = Graphic3D.CreatePoint(p3, c.MModel);
-
-                        DrawTriangle(pixelA, pixelB, pixelC, new Vector4(color * 255, color * 255, color * 255, 1));
+                        DrawTriangle(p1, p2, p3, new Vector4(0.3f, 0.2f, 0.5f, color));
                         i++;
                     }
                 }
@@ -150,56 +148,101 @@ namespace GK3D
             return min + (max - min) * Clamp(gradient);
         }
         
-        void ProcessScanLine(int y, Vector4 pa, Vector4 pb, Vector4 pc, Vector4 pd, Vector4 color)
+        void ProcessScanLine(ScanLineData data, MyPoint va, MyPoint vb, MyPoint vc, MyPoint vd, Vector4 color)
         {
-            var gradient1 = pa.Y != pb.Y ? (y - pa.Y) / (pb.Y - pa.Y) : 1;
-            var gradient2 = pc.Y != pd.Y ? (y - pc.Y) / (pd.Y - pc.Y) : 1;
+            Vector4 pa = va.coords2d;
+            Vector4 pb = vb.coords2d;
+            Vector4 pc = vc.coords2d;
+            Vector4 pd = vd.coords2d;
+
+            // Thanks to current Y, we can compute the gradient to compute others values like
+            // the starting X (sx) and ending X (ex) to draw between
+            // if pa.Y == pb.Y or pc.Y == pd.Y, gradient is forced to 1
+            var gradient1 = pa.Y != pb.Y ? (data.currentY - pa.Y) / (pb.Y - pa.Y) : 1;
+            var gradient2 = pc.Y != pd.Y ? (data.currentY - pc.Y) / (pd.Y - pc.Y) : 1;
 
             int sx = (int)Interpolate(pa.X, pb.X, gradient1);
             int ex = (int)Interpolate(pc.X, pd.X, gradient2);
-            
+
+            // starting Z & ending Z
             float z1 = Interpolate(pa.Z, pb.Z, gradient1);
             float z2 = Interpolate(pc.Z, pd.Z, gradient2);
-            
+
+            var snl = Interpolate(data.ndotla, data.ndotlb, gradient1);
+            var enl = Interpolate(data.ndotlc, data.ndotld, gradient2);
+            // drawing a line from left (sx) to right (ex) 
             for (var x = sx; x < ex; x++)
             {
                 float gradient = (x - sx) / (float)(ex - sx);
 
                 var z = Interpolate(z1, z2, gradient);
-                DrawPoint(new Vector4(x, y, z, 1), Vector4.Multiply(0.5F, color));
+                var ndotl = Interpolate(snl, enl, gradient);
+                // changing the color value using the cosine of the angle
+                // between the light vector and the normal vector
+                DrawPoint(new Vector4(x, data.currentY, z, 1), color* ndotl);
             }
         }
 
-        public void DrawTriangle(Vector4 p1, Vector4 p2, Vector4 p3, Vector4 color)
+        public void DrawTriangle(MyPoint v1, MyPoint v2, MyPoint v3, Vector4 color)
         {
-            if (p1.Y > p2.Y)
+            if (v1.coords2d.Y > v2.coords2d.Y)
             {
-                Swap<Vector4>(ref p1, ref p2);
+                Swap<MyPoint>(ref v1, ref v2);
             }
 
-            if (p2.Y > p3.Y)
+            if (v2.coords2d.Y > v3.coords2d.Y)
             {
-                Swap<Vector4>(ref p2, ref p3);
+                Swap<MyPoint>(ref v2, ref v3);
             }
-            if (p1.Y > p2.Y)
+            if (v1.coords2d.Y > v2.coords2d.Y)
             {
-                Swap<Vector4>(ref p1, ref p2);
+                Swap<MyPoint>(ref v1, ref v2);
             }
+
+            Vector4 p1 = v1.coords2d;
+            Vector4 p2 = v2.coords2d;
+            Vector4 p3 = v3.coords2d;
+
+            Vector4 lightPos2 = new Vector4(0, 10, 10, 1);
+            // Light position 
+            Vector4 lightPos = new Vector4(objects[1].pointList[5]._currentCoords.X - 0.1f, objects[1].pointList[5]._currentCoords.Y - 0.1f, objects[1].pointList[5]._currentCoords.Z - 0.1f, 1);
+            // computing the cos of the angle between the light vector and the normal vector
+            // it will return a value between 0 and 1 that will be used as the intensity of the color
+            float nl1 = Math.Min(1, ComputeNDotL(v1._currentCoords, v1.normal, lightPos) + ComputeNDotL(v1._currentCoords, v1.normal, lightPos2));
+            float nl2 = Math.Min(1, ComputeNDotL(v2._currentCoords, v2.normal, lightPos) + ComputeNDotL(v2._currentCoords, v2.normal, lightPos2));
+            float nl3 = Math.Min(1, ComputeNDotL(v3._currentCoords, v3.normal, lightPos) + ComputeNDotL(v3._currentCoords, v3.normal, lightPos2));
+
+            var data = new ScanLineData { };
+
             float dP1P2, dP1P3;
 
             dP1P2 = (p2.Y - p1.Y > 0) ? (p2.X - p1.X) / (p2.Y - p1.Y) : 0;
 
             dP1P3 = (p3.Y - p1.Y > 0) ? (p3.X - p1.X) / (p3.Y - p1.Y) : 0;
-            
+            // Light position 
+
             // first triangle
             if (dP1P2 > dP1P3)
             {
                 for (int y = (int)p1.Y; y <= (int)p3.Y; y++)
                 {
+                    data.currentY = y;
                     if (y < p2.Y)
-                        ProcessScanLine(y, p1, p3, p1, p2, color);
+                    {
+                        data.ndotla = nl1;
+                        data.ndotlb = nl3;
+                        data.ndotlc = nl1;
+                        data.ndotld = nl2;
+                        ProcessScanLine(data, v1, v3, v1, v2, color);
+                    }
                     else
-                        ProcessScanLine(y, p1, p3, p2, p3, color);
+                    {
+                        data.ndotla = nl1;
+                        data.ndotlb = nl3;
+                        data.ndotlc = nl2;
+                        data.ndotld = nl3;
+                        ProcessScanLine(data, v1, v3, v2, v3, color);
+                    }
                 }
             }
             // second triangle
@@ -207,32 +250,27 @@ namespace GK3D
             {
                 for (int  y = (int)p1.Y; y <= (int)p3.Y; y++)
                 {
+                    data.currentY = y;
                     if (y < p2.Y)
-                        ProcessScanLine(y, p1, p2, p1, p3, color);
+                    {
+                        data.ndotla = nl1;
+                        data.ndotlb = nl2;
+                        data.ndotlc = nl1;
+                        data.ndotld = nl3;
+                        ProcessScanLine(data, v1, v2, v1, v3, color);
+                    }
                     else
-                        ProcessScanLine(y, p2, p3, p1, p3, color);
+                    {
+                        data.ndotla = nl2;
+                        data.ndotlb = nl3;
+                        data.ndotlc = nl1;
+                        data.ndotld = nl3;
+                        ProcessScanLine(data, v2, v3, v1, v3, color);
+                    }
                 }
             }
         }
-
-        private Vector3 CalculateLight(Vector4 point, Vector3 lightPoint, Vector3 normal, Vector3 cameraPoint, Vector3 rgb)
-        {
-            // trzeba zamienic lightpointa na prawdziwy wektor, a nie wektor wspolrzednych
-            float ka = 0.5F;
-            float kd = 0.5F;
-            float ks = 0.5F;
-            float a = 0.5F;
-            Vector3 lightSource = new Vector3(0.2F, 0.2F, 0.2F);
-            Vector3 r = 2 * Vector3.Subtract(Vector3.Multiply(Vector3.Cross(lightPoint, normal), normal), lightPoint);
-            return Vector3.Add(
-                Vector3.Multiply(rgb, new Vector3(ka, ka, ka)), 
-                Vector3.Multiply(lightSource, Vector3.Add(
-                    (Vector3.Multiply(
-                        new Vector3(kd, kd, kd), Vector3.Cross(normal, lightPoint))),
-                        Vector3.Multiply(new Vector3(ks,ks,ks), Vector3.Cross(cameraPoint, r))
-                    )));
-
-        }
+        
         public void DrawPoint(Vector4 point, Vector4 color)
         {
             if (point.X >= 0 && point.Y >= 0 && point.X < pictureBox1.Width && point.Y < pictureBox1.Height)
@@ -249,7 +287,7 @@ namespace GK3D
 
             zindex[x,y] = z;
 
-            lbm.SetPixel(x, y, Color.FromArgb((int)color.X, (int)color.Y, (int)color.Z));
+            lbm.SetPixel(x, y, Color.FromArgb((int)((1-color.W)*255),(int)(color.X*255), (int)(color.Y * 255), (int)(color.Z * 255)));
         }
         public static void Swap<T>(ref T x, ref T y)
         {
@@ -257,7 +295,19 @@ namespace GK3D
             y = x;
             x = tmp;
         }
-        
+        float ComputeNDotL(Vector4 point, Vector4 normal, Vector4 lightPosition)
+        {
+            Vector3 point3d = new Vector3(point.X, point.Y, point.Z);
+            Vector3 light3d = new Vector3(lightPosition.X, lightPosition.Y, lightPosition.Z);
+            Vector3 normal3d = new Vector3(normal.X, normal.Y, normal.Z);
+            var lightDirection = light3d - point3d;
+
+            normal3d = Vector3.Normalize(normal3d);
+            lightDirection = Vector3.Normalize(lightDirection);
+
+            return Math.Max(0, Vector3.Dot(lightDirection, normal3d));
+        }
+
         public Form1()
         {
             InitializeComponent();
@@ -269,7 +319,7 @@ namespace GK3D
             objects.Add(LoadJSONFile("monkey.babylon")[0]);
             for (int i = 0; i < objects[0].pointList.Count; i++)
             {
-                objects[1].pointList[i] = new Vector4(scale * objects[0].pointList[i].X, scale * objects[0].pointList[i].Y, scale * objects[0].pointList[i].Z, 1);
+                objects[1].pointList[i].realCoords = new Vector4(scale * objects[0].pointList[i].realCoords.X, scale * objects[0].pointList[i].realCoords.Y, scale * objects[0].pointList[i].realCoords.Z, 1);
             }
             objects[0].rotate = false;
             Bitmap bm = new Bitmap(pictureBox1.Width, pictureBox1.Height);
@@ -289,6 +339,14 @@ namespace GK3D
         {
         }
     }
+    public struct ScanLineData
+    {
+        public int currentY;
+        public float ndotla;
+        public float ndotlb;
+        public float ndotlc;
+        public float ndotld;
+    }
     public struct Triangle
     {
         public int p1, p2, p3;
@@ -297,12 +355,12 @@ namespace GK3D
     {
         public bool rotate = true;
         static double t=0.0;
-        public Matrix4x4 MModel = new Matrix4x4(1, 0, 0, 0,
+        private Matrix4x4 MModel = new Matrix4x4(1, 0, 0, 0,
             0, 1, 0, 0,
             0, 0, 1, 0,
             0, 0, 0, 1);
         public List<Triangle> triangleList = new List<Triangle>();
-        public List<Vector4> pointList = new List<Vector4>();
+        public List<MyPoint> pointList = new List<MyPoint>();
         public Object3D()
         {
             System.Timers.Timer myTimer = new System.Timers.Timer();
@@ -317,6 +375,11 @@ namespace GK3D
             {
                 lock (Form1.syncLock)
                 {
+                    for(int i = 0; i < pointList.Count; i++)
+                    {
+                        pointList[i]._currentCoords = Graphic3D.MultiplyV4(MModel, pointList[i].realCoords);
+                        pointList[i].normal = Graphic3D.MultiplyV4(MModel, pointList[i]._normal);
+                    }
                     MModel = new Matrix4x4((float)Math.Cos(t), (float)(-Math.Sin(t)), 0, (float)(2 * Math.Sin(t)),
                     (float)Math.Sin(t), (float)Math.Cos(t), 0, (float)(2 * Math.Cos(t)),
                     0, 0, 1, 0,
@@ -329,9 +392,31 @@ namespace GK3D
         {
             triangleList.Add(e);
         }
-        public void addPoint(Vector4 e)
+        public void addPoint(MyPoint e)
         {
             pointList.Add(e);
+        }
+    }
+    public class MyPoint
+    {
+        public Vector4 realCoords;
+        public Vector4 _currentCoords;
+        public Vector4 _normal;
+        public Vector4 currentCoords { get { return new Vector4(_currentCoords.X, _currentCoords.Y, coords2d.Z, 1); } }
+        public Vector4 normal;
+        public Vector4 coords2d { get { return Graphic3D.CreatePoint(_currentCoords); } }
+        public MyPoint(Vector4 v)
+        {
+            realCoords = v;
+            _currentCoords = v;
+        }
+
+        public MyPoint(Vector4 v, Vector4 vector4)
+        {
+            realCoords = v;
+            _currentCoords = v;
+            _normal = vector4;
+            normal = vector4;
         }
     }
     public class Edge
