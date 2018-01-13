@@ -61,7 +61,9 @@ namespace GK3D
         {
             Vector4 pp = Normalize4(MultiplyV4(MatrixProj, MultiplyV4(MatrixView, MultiplyV4(MatrixModel, new Vector4(point.X, point.Y, point.Z, point.W)))));
             pp.X = (pp.X + 1) / 2 * width / 3 + 1.2F*width/3;
-            pp.Y = (pp.Y + 1) / 2 * height /3 + height/3;
+            pp.Y = (pp.Y + 1) / 2 * height /3 + height/3; // pp.Y - height/3 = pp.Y/2 * height /3 + 1/2 height/3
+            // pp.Y - pp.Y/2 * height = 1/2 height /3 + height /3
+            // pp.Y(1-height/2) = 1/2 height/3 + 
             pp.Z = (pp.Z + 1) / 2 * 100;
             return pp;
         }

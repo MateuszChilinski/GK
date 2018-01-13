@@ -16,11 +16,17 @@ namespace GK3D
 {
     public partial class Form1 : Form
     {
+
+        float ka = 0.25f;
+        float kd = 0.25f;
+        float ks = 0.3f;
+        float alpha = 40f;
+
         float[,] zindex;
-        static double t = 0;
+        double t = 0;
+        Vector4 cameraPos = new Vector4(3.0f, 0.5f, 0.5f, 1);
         List<Object3D> objects = new List<Object3D>();
         public static readonly object syncLock = new object();
-
         public Object3D[] LoadJSONFile(string fileName)
         {
             var meshes = new List<Object3D>();
@@ -89,7 +95,6 @@ namespace GK3D
         private void PictureBox1_Paint(object sender, PaintEventArgs e)
         {
             Graphics g = Graphics.FromImage(pictureBox1.Image);
-            int i = 0;
             zindex = new float[pictureBox1.Width, pictureBox1.Height];
            
             tmpBtmp = new Bitmap(pictureBox1.Width, pictureBox1.Height);
@@ -109,11 +114,12 @@ namespace GK3D
             {
                 if (radioButton2.Checked == true)
                 {
+                    cameraPos = new Vector4(3.0f, 0.5f, 0.5f, 1);
                     Graphic3D.Mview = Graphic3D.CreateViewAt(3.0, 0.5, 0.5, objects[1].pointList[5]._currentCoords.X, objects[1].pointList[5]._currentCoords.Y, objects[1].pointList[5]._currentCoords.Z, 0, 0, 1);
                 }
                 if (radioButton3.Checked == true)
                 {
-                    //var followed1 = Graphic3D.CreatePoint3D(objects[1].pointList[5], objects[1].MModel);
+                    cameraPos = new Vector4(objects[1].pointList[5]._currentCoords.X + 2, objects[1].pointList[5]._currentCoords.Y + 2, objects[1].pointList[5]._currentCoords.Z + 2, 1);
                     Graphic3D.Mview = Graphic3D.CreateViewAt(objects[1].pointList[5]._currentCoords.X + 2, objects[1].pointList[5]._currentCoords.Y + 2, objects[1].pointList[5]._currentCoords.Z + 2, objects[1].pointList[5]._currentCoords.X, objects[1].pointList[5]._currentCoords.Y,
                         objects[1].pointList[5]._currentCoords.Z, 0, 0, 1);
                 }
@@ -123,16 +129,28 @@ namespace GK3D
                     //if (k++ == 0) continue;
                     foreach (Triangle poly in c.triangleList)
                     {
-                        var color = 1.0f;
-
+                        float R=0.0f, G = 0.0f, B = 0.0f;
+                        if(k == 0)
+                        {
+                            R = 1.0f;
+                            G = 0.549019608f;
+                            B = 0.0f;
+                        }
+                        else if (k == 1)
+                        {
+                            R = 0.0f;
+                            B = 1.0f;
+                            G = 0.0f;
+                        }
                         var p1 = c.pointList[poly.p1];
                         var p2 = c.pointList[poly.p2];
                         var p3 = c.pointList[poly.p3];
                         
 
-                        DrawTriangle(p1, p2, p3, new Vector4(0.3f, 0.2f, 0.5f, color));
-                        i++;
+                        DrawTriangle(p1, p2, p3, new Vector4(R, G, B, 1.0f));
+                        
                     }
+                    k++;
                 }
             }
             lbm.UnlockBits();
@@ -147,7 +165,11 @@ namespace GK3D
         {
             return min + (max - min) * Clamp(gradient);
         }
-        
+
+        Vector4 Interpolate(Vector4 max, Vector4 min, float gradient)
+        {
+            return Vector4.Lerp(max, min, gradient);
+        }
         void ProcessScanLine(ScanLineData data, MyPoint va, MyPoint vb, MyPoint vc, MyPoint vd, Vector4 color)
         {
             Vector4 pa = va.coords2d;
@@ -168,21 +190,87 @@ namespace GK3D
             float z1 = Interpolate(pa.Z, pb.Z, gradient1);
             float z2 = Interpolate(pc.Z, pd.Z, gradient2);
 
-            var snl = Interpolate(data.ndotla, data.ndotlb, gradient1);
-            var enl = Interpolate(data.ndotlc, data.ndotld, gradient2);
+            float real_z1 = Interpolate(va._currentCoords.Z, vb._currentCoords.Z, gradient1);
+            float real_z2 = Interpolate(vc._currentCoords.Z, vd._currentCoords.Z, gradient1);
+            Vector4 Vsnl=new Vector4(), Venl = new Vector4();
+            float snl=0.0f, enl=0.0f;
+            if (radioButton4.Checked == true)
+            {
+                snl = Interpolate(data.ndotla, data.ndotlb, gradient1);
+                enl = Interpolate(data.ndotlc, data.ndotld, gradient2);
+            }
+            else if(radioButton5.Checked == true)
+            {
+                Vsnl = Interpolate(data.normalA, data.normalB, gradient1);
+                Venl = Interpolate(data.normalC, data.normalD, gradient2);
+            }
+
+
+            Vector4 lightPos2 = new Vector4(0, 10, 10, 1);
+            // Light position 
+            Vector4 lightPos = new Vector4(objects[1].pointList[5]._currentCoords.X - 0.01f, objects[1].pointList[5]._currentCoords.Y - 0.01f, objects[1].pointList[5]._currentCoords.Z - 0.011f, 1);
+            List<Vector4> lights = new List<Vector4>();
+            lights.Add(lightPos);
+            lights.Add(lightPos2);
             // drawing a line from left (sx) to right (ex) 
             for (var x = sx; x < ex; x++)
             {
                 float gradient = (x - sx) / (float)(ex - sx);
 
                 var z = Interpolate(z1, z2, gradient);
-                var ndotl = Interpolate(snl, enl, gradient);
+
+                var real_z = Interpolate(real_z1, real_z2, gradient);
+                Vector4 Vndotl;
+                float ndotl=0.0f;
+                if (radioButton4.Checked == true)
+                {
+                    ndotl = Interpolate(snl, enl, gradient);
+                }
+                else if(radioButton5.Checked == true)
+                {
+                    Vndotl = Interpolate(Vsnl, Venl, gradient);
+                    ndotl = CalculateLight(lights, new Vector4(x / pictureBox1.Width, data.currentY / pictureBox1.Height, real_z, 1), Vndotl);
+                }
+                float ndotl1 = Interpolate(snl, enl, gradient);
                 // changing the color value using the cosine of the angle
                 // between the light vector and the normal vector
                 DrawPoint(new Vector4(x, data.currentY, z, 1), color* ndotl);
             }
         }
-
+        public float CalculateLight(List<Vector4> lightSources, MyPoint point)
+        {
+            return CalculateLight(lightSources, point._currentCoords, point.normal);
+        }
+        public float CalculateLight(List<Vector4> lightSources, Vector4 point, Vector4 normal)
+        {
+            if (radioButton6.Checked)
+                return CalculateLightPhong(lightSources, point, normal);
+            else
+                return CalculateLightBlinn(lightSources, point, normal);
+        }
+        public float CalculateLightBlinn(List<Vector4> lightSources, Vector4 point, Vector4 normal)
+        {
+            float i = 0.0f;
+            foreach (Vector4 light in lightSources)
+            {
+                i += kd * ComputeNDotL(point, normal, light) + ks * (float)Math.Pow(ComputeNDotH(point, normal, light), alpha);
+            }
+            return Clamp(ka + i);
+        }
+        public float CalculateLightPhong(List<Vector4> lightSources, Vector4 point, Vector4 normal)
+        {
+            float i = 0.0f;
+            foreach (Vector4 light in lightSources)
+            {
+                float dp = 2 * ComputeNDotL(point, normal, light);
+                Vector4 R = Vector4.Subtract(Vector4.Multiply(dp, Vector4.Normalize(normal)), Vector4.Normalize(light));
+                if(dp > 0)
+                    i += kd * ComputeNDotL(point, normal, light) + ks * (float)Math.Pow(ComputeRDotV(point, cameraPos, R), alpha);
+                else
+                    i += kd * ComputeNDotL(point, normal, light);
+            }
+            return Clamp(ka + i);
+        }
         public void DrawTriangle(MyPoint v1, MyPoint v2, MyPoint v3, Vector4 color)
         {
             if (v1.coords2d.Y > v2.coords2d.Y)
@@ -206,12 +294,19 @@ namespace GK3D
             Vector4 lightPos2 = new Vector4(0, 10, 10, 1);
             // Light position 
             Vector4 lightPos = new Vector4(objects[1].pointList[5]._currentCoords.X - 0.1f, objects[1].pointList[5]._currentCoords.Y - 0.1f, objects[1].pointList[5]._currentCoords.Z - 0.1f, 1);
+            List<Vector4> lights = new List<Vector4>();
+
+            lights.Add(lightPos);
+            lights.Add(lightPos2);
             // computing the cos of the angle between the light vector and the normal vector
             // it will return a value between 0 and 1 that will be used as the intensity of the color
-            float nl1 = Math.Min(1, ComputeNDotL(v1._currentCoords, v1.normal, lightPos) + ComputeNDotL(v1._currentCoords, v1.normal, lightPos2));
-            float nl2 = Math.Min(1, ComputeNDotL(v2._currentCoords, v2.normal, lightPos) + ComputeNDotL(v2._currentCoords, v2.normal, lightPos2));
-            float nl3 = Math.Min(1, ComputeNDotL(v3._currentCoords, v3.normal, lightPos) + ComputeNDotL(v3._currentCoords, v3.normal, lightPos2));
-
+            float nl1 = 0.0f, nl2 = 0.0f, nl3=0.0f;
+            if (radioButton4.Checked == true)
+            {
+                nl1 = CalculateLight(lights, v1);
+                nl2 = CalculateLight(lights, v2);
+                nl3 = CalculateLight(lights, v3);
+            }
             var data = new ScanLineData { };
 
             float dP1P2, dP1P3;
@@ -229,18 +324,26 @@ namespace GK3D
                     data.currentY = y;
                     if (y < p2.Y)
                     {
-                        data.ndotla = nl1;
-                        data.ndotlb = nl3;
-                        data.ndotlc = nl1;
-                        data.ndotld = nl2;
+                            data.ndotla = nl1;
+                            data.ndotlb = nl3;
+                            data.ndotlc = nl1;
+                            data.ndotld = nl2;
+                            data.normalA = v1.normal;
+                            data.normalB = v3.normal;
+                            data.normalC = v1.normal;
+                            data.normalD = v2.normal;
                         ProcessScanLine(data, v1, v3, v1, v2, color);
                     }
                     else
                     {
-                        data.ndotla = nl1;
-                        data.ndotlb = nl3;
-                        data.ndotlc = nl2;
-                        data.ndotld = nl3;
+                            data.ndotla = nl1;
+                            data.ndotlb = nl3;
+                            data.ndotlc = nl2;
+                            data.ndotld = nl3;
+                            data.normalA = v1.normal;
+                            data.normalB = v3.normal;
+                            data.normalC = v2.normal;
+                            data.normalD = v3.normal;
                         ProcessScanLine(data, v1, v3, v2, v3, color);
                     }
                 }
@@ -252,19 +355,27 @@ namespace GK3D
                 {
                     data.currentY = y;
                     if (y < p2.Y)
-                    {
-                        data.ndotla = nl1;
-                        data.ndotlb = nl2;
-                        data.ndotlc = nl1;
-                        data.ndotld = nl3;
+                        {
+                            data.ndotla = nl1;
+                            data.ndotlb = nl2;
+                            data.ndotlc = nl1;
+                            data.ndotld = nl3;
+                            data.normalA = v1.normal;
+                            data.normalB = v2.normal;
+                            data.normalC = v1.normal;
+                            data.normalD = v3.normal;
                         ProcessScanLine(data, v1, v2, v1, v3, color);
                     }
                     else
                     {
-                        data.ndotla = nl2;
-                        data.ndotlb = nl3;
-                        data.ndotlc = nl1;
-                        data.ndotld = nl3;
+                            data.ndotla = nl2;
+                            data.ndotlb = nl3;
+                            data.ndotlc = nl1;
+                            data.ndotld = nl3;
+                            data.normalA = v2.normal;
+                            data.normalB = v3.normal;
+                            data.normalC = v1.normal;
+                            data.normalD = v3.normal;
                         ProcessScanLine(data, v2, v3, v1, v3, color);
                     }
                 }
@@ -286,14 +397,36 @@ namespace GK3D
             }
 
             zindex[x,y] = z;
-
-            lbm.SetPixel(x, y, Color.FromArgb((int)((1-color.W)*255),(int)(color.X*255), (int)(color.Y * 255), (int)(color.Z * 255)));
+            int R =  (int)(color.X * 255);
+            int G =  (int)(color.Y * 255);
+            int B = (int)(color.Z * 255);
+            lbm.SetPixel(x, y, Color.FromArgb(255,R, G, B));
         }
         public static void Swap<T>(ref T x, ref T y)
         {
             T tmp = y;
             y = x;
             x = tmp;
+        }
+        float ComputeNDotH(Vector4 point, Vector4 normal, Vector4 lightPosition)
+        {
+
+            Vector3 point3d = new Vector3(point.X, point.Y, point.Z);
+            Vector3 light3d = new Vector3(lightPosition.X, lightPosition.Y, lightPosition.Z);
+            Vector3 normal3d = new Vector3(normal.X, normal.Y, normal.Z);
+
+            Vector3 cameraPos3D = new Vector3(cameraPos.X, cameraPos.Y, cameraPos.Z);
+
+            var cameraDirection = cameraPos3D - point3d;
+            var lightDirection = light3d - point3d;
+
+            normal3d = Vector3.Normalize(normal3d);
+            lightDirection = Vector3.Normalize(lightDirection);
+            cameraDirection = Vector3.Normalize(cameraDirection);
+
+            Vector3 H = Vector3.Normalize(lightDirection + cameraDirection);
+
+            return Math.Max(0, Vector3.Dot(normal3d, H));
         }
         float ComputeNDotL(Vector4 point, Vector4 normal, Vector4 lightPosition)
         {
@@ -307,7 +440,18 @@ namespace GK3D
 
             return Math.Max(0, Vector3.Dot(lightDirection, normal3d));
         }
+        float ComputeRDotV(Vector4 point, Vector4 cameraPos, Vector4 R)
+        {
+            Vector3 point3d = new Vector3(point.X, point.Y, point.Z);
+            Vector3 cameraPos3D = new Vector3(cameraPos.X, cameraPos.Y, cameraPos.Z);
+            Vector3 R3D = new Vector3(R.X, R.Y, R.Z);
+            var cameraDirection = cameraPos3D - point3d;
 
+            R3D = Vector3.Normalize(R3D);
+            cameraDirection = Vector3.Normalize(cameraDirection);
+
+            return Math.Max(0, Vector3.Dot(R3D, cameraDirection));
+        }
         public Form1()
         {
             InitializeComponent();
@@ -332,6 +476,7 @@ namespace GK3D
 
         private void radioButton1_CheckedChanged(object sender, EventArgs e)
         {
+            cameraPos = new Vector4(3.0f, 0.5f, 0.5f, 1);
             Graphic3D.Mview = Graphic3D.CreateViewAt(3.0, 0.5, 0.5, 0, 0.5, 0.5, 0, 0, 1);
         }
 
@@ -346,6 +491,10 @@ namespace GK3D
         public float ndotlb;
         public float ndotlc;
         public float ndotld;
+        public Vector4 normalA;
+        public Vector4 normalB;
+        public Vector4 normalC;
+        public Vector4 normalD;
     }
     public struct Triangle
     {
@@ -384,6 +533,10 @@ namespace GK3D
                     (float)Math.Sin(t), (float)Math.Cos(t), 0, (float)(2 * Math.Cos(t)),
                     0, 0, 1, 0,
                     0, 0, 0, 1);
+                    //MModel = new Matrix4x4((float)Math.Cos(t), (float)(-Math.Sin(t)), 0, (float)(2 * Math.Sin(t)),
+                    //(float)Math.Sin(t), (float)Math.Cos(t), 0, (float)(2 * Math.Cos(t)),
+                    //0, 0, 1, 0,
+                    //0, 0, 0, 1);
                     t += 0.05;
                 }
             }
