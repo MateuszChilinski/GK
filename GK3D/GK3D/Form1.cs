@@ -127,29 +127,31 @@ namespace GK3D
                 foreach (Object3D c in objects)
                 {
                     //if (k++ == 0) continue;
-                    foreach (Triangle poly in c.triangleList)
+                    Parallel.ForEach(c.triangleList, poly =>
                     {
-                        float R=0.0f, G = 0.0f, B = 0.0f;
-                        if(k == 0)
                         {
-                            R = 1.0f;
-                            G = 0.549019608f;
-                            B = 0.0f;
-                        }
-                        else if (k == 1)
-                        {
-                            R = 0.0f;
-                            B = 1.0f;
-                            G = 0.0f;
-                        }
-                        var p1 = c.pointList[poly.p1];
-                        var p2 = c.pointList[poly.p2];
-                        var p3 = c.pointList[poly.p3];
-                        
+                            float R = 0.0f, G = 0.0f, B = 0.0f;
+                            if (k == 0)
+                            {
+                                R = 1.0f;
+                                G = 0.549019608f;
+                                B = 0.0f;
+                            }
+                            else if (k == 1)
+                            {
+                                R = 0.0f;
+                                B = 1.0f;
+                                G = 0.0f;
+                            }
+                            var p1 = c.pointList[poly.p1];
+                            var p2 = c.pointList[poly.p2];
+                            var p3 = c.pointList[poly.p3];
 
-                        DrawTriangle(p1, p2, p3, new Vector4(R, G, B, 1.0f));
-                        
-                    }
+
+                            DrawTriangle(p1, p2, p3, new Vector4(R, G, B, 1.0f));
+
+                        }
+                    });
                     k++;
                 }
             }
